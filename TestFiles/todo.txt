@@ -1,0 +1,23 @@
+festgelegte_max_height: max höhe
+festgelegt_paths_for_height: jedes pathstück
+zweig_chance_per_path: 
+
+max_distance_from_Middle: distanz von der mitte des
+
+straightness: von Straight zu gay slider (gibt die winkel) (von 0 zu 1)
+
+mainseed: haupteinstellungen
+variationseed:  2. seedteil 
+    getseed:
+    loadseed:
+
+blätterobject
+
+texture:
+    random_material_rinde
+    random_material_blätter
+    rindfarbe:
+    blattfarbe:
+
+todo: redraw panel
+todo: random seed gen
