@@ -21,3 +21,9 @@ texture:
 
 todo: redraw panel
 todo: random seed gen
+
+
+Starting radius: dicke des stamms am start
+wie viel kleiner äste sein sollen:
+To Mesh Operator:
+Seamless Combination Operator:
