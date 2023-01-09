@@ -8,6 +8,7 @@ PROPS = [
     ('straightness', bpy.props.IntProperty(name='Straigness', subtype="PERCENTAGE",default = 10, min=0, max=100, step=1)),
     ('primary_seed', bpy.props.StringProperty(name='Primary Seed', default = "0")),
     ('secondary_seed', bpy.props.StringProperty(name='Secondary Seed', default = "0")),
+    ('material_list', bpy.props.PointerProperty(type=bpy.types.Material,name='Material')),
 ]
 
 class TestOperator(bpy.types.Operator):
@@ -124,7 +125,8 @@ class TreeGenPanel(bpy.types.Panel):
         row.prop(context.scene, "secondary_seed")
         row = layout.row()
         row.operator("object.secondaryseedgen")
-
+        row = layout.row()
+        row.prop(context.scene, "material_list")
 
 
         row = layout.row()
