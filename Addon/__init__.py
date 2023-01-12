@@ -1,4 +1,9 @@
 import bpy
+import random
+import base64
+from datetime import datetime
+import numpy as np
+import sys
 
 bl_info = {
     "name": "Fantasy Tree Generator",
@@ -21,8 +26,8 @@ PROPS = [
     ('straightness', bpy.props.IntProperty(name='Straigness', subtype="PERCENTAGE",default = 10, min=0, max=100, step=1)),
     ('leaf_object', bpy.props.PointerProperty(type=bpy.types.Object ,name='Leaf Object')),
     ('base_object', bpy.props.PointerProperty(type=bpy.types.Object ,name='Base Object')),
-    #('leaf_mat', bpy.props.PointerProperty(type=bpy.types.Material ,name='Leaf Material')),
-    #('base_mat', bpy.props.PointerProperty(type=bpy.types.Material ,name='Base Material')),
+    ('leaf_mat', bpy.props.PointerProperty(type=bpy.types.Material ,name='Leaf Material')),
+    ('bark_mat', bpy.props.PointerProperty(type=bpy.types.Material ,name='Bark Material')),
     ('primary_seed', bpy.props.StringProperty(name='Primary Seed', default = "0")),
     ('secondary_seed', bpy.props.StringProperty(name='Secondary Seed', default = "0")),
     ('material_list', bpy.props.PointerProperty(type=bpy.types.Material,name='Material')),
@@ -37,6 +42,8 @@ class TestOperator(bpy.types.Operator):
         return True# context.active_object is not None
 
     def execute(self, context):
+        print(np.random.RandomState(1).random())
+        print(GetRand(1))
         return {'FINISHED'}
 
 class GenNewBark(bpy.types.Operator):
@@ -61,6 +68,11 @@ class GenNewLeaf(bpy.types.Operator):
 
     def execute(self, context):
 # TODO: Generate the Bark and select it
+        if(bpy.data.materials.find("leaf_material") != -1):
+            bpy.data.materials.remove(bpy.data.materials["leaf_material"])
+        bpy.data.materials.new(name="leaf_material")
+        bpy.context.scene.leaf_mat = bpy.data.materials["leaf_material"]
+
         return {'FINISHED'}
 
 class PrimarySeedGenOperator(bpy.types.Operator):
@@ -73,7 +85,8 @@ class PrimarySeedGenOperator(bpy.types.Operator):
 
 # TODO: Add Generating Logic
     def execute(self, context):
-        bpy.context.scene.primary_seed = "2"
+        random.seed(datetime.now().timestamp())
+        bpy.context.scene.primary_seed = str(random.randint(0,sys.maxsize))
         return {'FINISHED'}
 
 class SecondarySeedGenOperator(bpy.types.Operator):
@@ -85,10 +98,9 @@ class SecondarySeedGenOperator(bpy.types.Operator):
         return True# context.active_object is not None
 
 # TODO: Add Generating Logic
-    def execute(self, context): 
-        bpy.context.scene.secondary_seed = "1"
-
-        
+    def execute(self, context):
+        random.seed(datetime.now().timestamp())
+        bpy.context.scene.secondary_seed = str(random.randint(0,sys.maxsize))
         return {'FINISHED'}
 
 
@@ -109,8 +121,53 @@ class LeafMaterialOperator(bpy.types.Operator):
         layout.prop(context.scene, "max_height", slider=True)
         layout.prop_search(self, "material_name", bpy.data, "materials")
 
-        
+random1: np.random.RandomState = np.random.RandomState(1)
+random2: np.random.RandomState = np.random.RandomState(1)
 
+def GetRand(seedtype: int): 
+    if(seedtype == 1):
+        return random1.random()
+    if(seedtype == 2):
+        return random2.random()
+    
+def StringSeedToNumber(_str: str):
+    num: int = 0
+
+    for i in range(len(_str)):
+        num += ord(_str[i])       
+
+    return num
+
+old_primary_seed: str = ""
+old_secondary_seed: str = ""
+
+def mainfunc():
+    leaf_obj: bpy.types.Object = bpy.context.scene.leaf_object
+    leaf_mat: bpy.types.Material = bpy.context.scene.leaf_mat
+
+    if leaf_obj is not None and leaf_mat is not None:
+        if leaf_obj.data.materials:
+            if(leaf_obj.data.materials[0] != leaf_mat):
+                leaf_obj.data.materials[0] = leaf_mat
+                print("Leaf changed")
+        else:
+            leaf_obj.data.materials.append(leaf_mat)
+            print("Leaf changed")
+    global old_primary_seed
+    global random1
+    if(old_primary_seed != bpy.context.scene.primary_seed):
+        old_primary_seed = bpy.context.scene.primary_seed
+        currSeed = StringSeedToNumber(bpy.context.scene.primary_seed)
+        random1 = np.random.RandomState(currSeed)
+        print("Primary Seed Changed")
+    global old_secondary_seed
+    global random2
+    if(old_secondary_seed != bpy.context.scene.secondary_seed):
+        old_secondary_seed = bpy.context.scene.secondary_seed
+        currSeed = StringSeedToNumber(bpy.context.scene.secondary_seed)
+        random2 = np.random.RandomState(currSeed)
+        print("Secondary Seed Changed")
+    
 
 class TreeGenPanel(bpy.types.Panel):
     """Creates a Panel in the Object properties window"""
@@ -126,14 +183,7 @@ class TreeGenPanel(bpy.types.Panel):
 
         obj = context.object
 
-        row = layout.row()
-        #row.label(text="Hello world!", icon='WORLD_DATA')
-
-        #row = layout.row()
-        #row.label(text="Active object is: " + obj.name)
-        #row = layout.row()
-        #row.prop(obj, "name")
-        #layout.separator()
+        mainfunc()
 
         row = layout.row()
         row.label(text="Tree Properties")
@@ -147,30 +197,23 @@ class TreeGenPanel(bpy.types.Panel):
         row.prop(context.scene, "max_distance_from_middle", slider=True)
         row = layout.row()
         row.prop(context.scene, "straightness", slider=True)
-
+        #print(bpy.context.scene.max_height)
 
         layout.separator()
         row = layout.row()
-        row.label(text="Treebark Material:")
+        row.label(text="Bark Generation:")
         row = layout.row()
-        row.template_ID(obj, "active_material", new="material.new")
-        # row.prop(obj, "leaf_mat")
+        row.prop(context.scene, "bark_mat")
         row = layout.row()
         row.operator("object.gennewbark")
 
         layout.separator()
         row = layout.row()
-        row.label(text="Leaf Generation:")
+        row.label(text="Leaf Generation 1:")
         row = layout.row()
         row.prop(context.scene, "leaf_object")
         row = layout.row()
-        row.label(text="Leaf Material:")
-        row = layout.row()
-        row.template_ID(obj, "active_material", new="material.new")
-        # row.operator("object.leafmaterialoperator", text='Search', icon = 'VIEWZOOM')
-        # row.prop(obj, "bark_mat")
-        # row.prop_search(obj, "material_name", bpy.data.materials, "materials")
-        # row.prop_search(obj, "material_name", context.scene, "materials")
+        row.prop(context.scene, "leaf_mat")
         row = layout.row()
         row.operator("object.gennewleaf")
 
@@ -185,9 +228,6 @@ class TreeGenPanel(bpy.types.Panel):
         row.prop(context.scene, "secondary_seed")
         row = layout.row()
         row.operator("object.secondaryseedgen")
-        
-        row = layout.row()
-        row.prop(context.scene, "material_list")
 
 
         layout.separator()
@@ -207,6 +247,9 @@ def register():
     bpy.utils.register_class(TreeGenPanel)
     for (prop_name, prop_value) in PROPS:
         setattr(bpy.types.Scene, prop_name, prop_value)
+    
+    
+    
 
 
 def unregister():
