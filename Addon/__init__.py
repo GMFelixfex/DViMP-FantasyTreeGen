@@ -1,6 +1,5 @@
 import bpy
 import random
-import base64
 from datetime import datetime
 import numpy as np
 import sys
@@ -38,7 +37,7 @@ class TestOperator(bpy.types.Operator):
     bl_label = "Simple Test Operator "
 
     @classmethod
-    def poll(cls, context): # was notwending sit für di aktivierung
+    def poll(cls, context): # was notwending ist für die aktivierung
         return True# context.active_object is not None
 
     def execute(self, context):
@@ -51,11 +50,14 @@ class GenNewBark(bpy.types.Operator):
     bl_label = "Genenate Bark Material"
 
     @classmethod
-    def poll(cls, context): # was notwending sit für di aktivierung
+    def poll(cls, context): # was notwending ist für die aktivierung
         return True# context.active_object is not None
 
     def execute(self, context):
-# TODO: Generate the Bark and select it
+        if(bpy.data.materials.find("bark_material") != -1):
+            bpy.data.materials.remove(bpy.data.materials["bark_material"])
+        bpy.data.materials.new(name="bark_material")
+        bpy.context.scene.bark_mat = bpy.data.materials["bark_material"]
         return {'FINISHED'}
 
 class GenNewLeaf(bpy.types.Operator):
@@ -63,7 +65,7 @@ class GenNewLeaf(bpy.types.Operator):
     bl_label = "Genenate Leaf Material"
 
     @classmethod
-    def poll(cls, context): # was notwending sit für di aktivierung
+    def poll(cls, context): # was notwending ist für die aktivierung
         return True# context.active_object is not None
 
     def execute(self, context):
@@ -80,7 +82,7 @@ class PrimarySeedGenOperator(bpy.types.Operator):
     bl_label = "Generate Priamry Seed"
 
     @classmethod
-    def poll(cls, context): # was notwending sit für di aktivierung
+    def poll(cls, context): # was notwending ist für die aktivierung
         return True# context.active_object is not None
 
 # TODO: Add Generating Logic
@@ -104,22 +106,33 @@ class SecondarySeedGenOperator(bpy.types.Operator):
         return {'FINISHED'}
 
 
-class LeafMaterialOperator(bpy.types.Operator):
-    bl_idname = "object.leafmaterialoperator"
-    bl_label = "Generate Leaf Material"
+def leafNodeLogic():
+    current_mat:bpy.types.Material =  bpy.data.materials["leaf_material"]
+    
 
-    @classmethod
-    def poll(cls, context): # was notwending sit für di aktivierung
-        return True# context.active_object is not None
+def barkNodeLogic():
+    current_mat:bpy.types.Material =  bpy.data.materials["bark_material"]
+    
 
 
-    def execute(self, context):
-        return {'FINISHED'}
+# 
+# class LeafMaterialOperator(bpy.types.Operator):
+#     bl_idname = "object.leafmaterialoperator"
+#     bl_label = "Generate Leaf Material"
 
-    def draw(self, context):
-        layout = self.layout
-        layout.prop(context.scene, "max_height", slider=True)
-        layout.prop_search(self, "material_name", bpy.data, "materials")
+#     @classmethod
+#     def poll(cls, context): # was notwending sit für di aktivierung
+#         return True# context.active_object is not None
+
+
+#     def execute(self, context):
+#         return {'FINISHED'}
+
+#     def draw(self, context):
+#         layout = self.layout
+#         layout.prop(context.scene, "max_height", slider=True)
+#         layout.prop_search(self, "material_name", bpy.data, "materials")
+# 
 
 random1: np.random.RandomState = np.random.RandomState(1)
 random2: np.random.RandomState = np.random.RandomState(1)
@@ -153,6 +166,23 @@ def mainfunc():
         else:
             leaf_obj.data.materials.append(leaf_mat)
             print("Leaf changed")
+    
+    bark_obj: bpy.types.Object = bpy.context.scene.bark_object
+    bark_mat: bpy.types.Material = bpy.context.scene.bark_mat
+    
+    if bark_obj is not None and bark_mat is not None:
+        if leaf_obj.data.materials:
+            if(bark_obj.data.materials[0] != bark_mat):
+                bark_obj.data.materials[0] = bark_mat
+                print("Leaf changed")
+        else:
+            bark_obj.data.materials.append(bark_mat)
+            print("Leaf changed")
+   
+   
+   
+   
+   
     global old_primary_seed
     global random1
     if(old_primary_seed != bpy.context.scene.primary_seed):
@@ -167,7 +197,10 @@ def mainfunc():
         currSeed = StringSeedToNumber(bpy.context.scene.secondary_seed)
         random2 = np.random.RandomState(currSeed)
         print("Secondary Seed Changed")
-    
+
+
+
+
 
 class TreeGenPanel(bpy.types.Panel):
     """Creates a Panel in the Object properties window"""
