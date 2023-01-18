@@ -43,8 +43,189 @@ class TestOperator(bpy.types.Operator):
 
     def execute(self, context):
         print("Start Testing")
-
+        Generator.generateStem(10,10, 2,0.5,0.1,0.5,1,123,(0,0,0))
+        Generator.mergePaths()
         return {'FINISHED'}
+
+class Generator():
+    
+    TreePartsList = []
+    LeavesSpawnPosList = []
+    Tree = None
+
+
+    def generateStem (height, segments, streightness, stemRadius, stemRadiusChangeFactor, twigPercentage, maxStemOutbreak, seed , StartingPoint):
+        
+        random.seed(seed)
+        
+        if (Generator.Tree != None):
+            Generator.Tree.select_set(True)
+            bpy.ops.object.delete()
+
+        TPLLength = len(Generator.TreePartsList)
+        k = 0
+        while (k<TPLLength):
+            Generator.TreePartsList[k]
+            k = k+1
+
+        Generator.TreePartsList = []
+        
+        #base
+        bpy.ops.curve.primitive_nurbs_path_add(enter_editmode=True, align='WORLD', location=StartingPoint, scale=(1, 1, 1))
+        bpy.ops.curve.select_all(action='TOGGLE')
+        bpy.ops.curve.de_select_last()
+        bpy.ops.curve.delete(type='VERT')
+        bpy.ops.curve.de_select_last()
+        bpy.ops.curve.delete(type='VERT')
+        bpy.ops.curve.de_select_last()
+        bpy.ops.curve.extrude_move(CURVE_OT_extrude={"mode":'TRANSLATION'}, TRANSFORM_OT_translate={"value":(0, 0, 1), "orient_axis_ortho":'X', "orient_type":'GLOBAL', "orient_matrix":((1, 0, 0), (0, 1, 0), (0, 0, 1)), "orient_matrix_type":'GLOBAL', "constraint_axis":(False, False, False), "mirror":False, "use_proportional_edit":False, "proportional_edit_falloff":'SMOOTH', "proportional_size":1, "use_proportional_connected":False, "use_proportional_projected":False, "snap":False, "snap_elements":{'INCREMENT'}, "use_snap_project":False, "snap_target":'CLOSEST', "use_snap_self":False, "use_snap_edit":False, "use_snap_nonedit":False, "use_snap_selectable":False, "snap_point":(0, 0, 0), "snap_align":False, "snap_normal":(0, 0, 0), "gpencil_strokes":False, "cursor_transform":False, "texture_space":False, "remove_on_cancel":False, "view2d_edge_pan":False, "release_confirm":False, "use_accurate":False, "use_automerge_and_split":False})
+        bpy.context.object.data.bevel_depth = stemRadius
+        bpy.context.object.data.use_fill_caps = True
+        
+        #stem loop
+        EndPoint = (StartingPoint[0],StartingPoint[1],StartingPoint[2]+1)
+        actHeight = 1
+        heightRangeMin = height/segments*0.9
+        heightRangeMax = height/segments*1.1
+        splinePoint = 2
+        i = 0
+        while i < segments:
+            i += 1
+            addHeight = random.uniform(heightRangeMin,heightRangeMax)
+            if (actHeight + addHeight > height):
+                addHeight = height - actHeight
+                actHeight = height
+            else:
+                actHeight += addHeight
+            def StemInRadius(radius):
+                newX = random.uniform(-streightness,streightness)
+                newY = random.uniform(-streightness,streightness)
+                spline = bpy.context.object.data.splines[0]
+                newPath = (newX, newY, addHeight)
+                if (((spline.points[splinePoint].co[0] + newX)*(spline.points[splinePoint].co[0] + newX)) + ((spline.points[splinePoint].co[1] + newY)*(spline.points[splinePoint].co[1] + newY))>(radius*radius)):
+                    return StemInRadius(radius)
+                else:
+                    return newPath
+            newPath = StemInRadius(maxStemOutbreak)
+            EndPoint = (EndPoint[0]+newPath[0],EndPoint[1]+newPath[1],EndPoint[2]+newPath[2])
+            bpy.ops.curve.extrude_move(CURVE_OT_extrude={"mode":'TRANSLATION'}, TRANSFORM_OT_translate={"value":newPath, "orient_axis_ortho":'X', "orient_type":'GLOBAL', "orient_matrix":((1, 0, 0), (0, 1, 0), (0, 0, 1)), "orient_matrix_type":'GLOBAL', "constraint_axis":(False, False, False), "mirror":False, "use_proportional_edit":False, "proportional_edit_falloff":'SMOOTH', "proportional_size":1, "use_proportional_connected":False, "use_proportional_projected":False, "snap":False, "snap_elements":{'INCREMENT'}, "use_snap_project":False, "snap_target":'CLOSEST', "use_snap_self":False, "use_snap_edit":False, "use_snap_nonedit":False, "use_snap_selectable":False, "snap_point":(0, 0, 0), "snap_align":False, "snap_normal":(0, 0, 0), "gpencil_strokes":False, "cursor_transform":False, "texture_space":False, "remove_on_cancel":False, "view2d_edge_pan":False, "release_confirm":False, "use_accurate":False, "use_automerge_and_split":False})
+            splinePoint += 1
+            nextRadius = 1-(actHeight/height)
+            bpy.context.object.data.splines[0].points[splinePoint].radius = nextRadius + ((1-nextRadius)*stemRadiusChangeFactor)
+        bpy.context.object.data.splines[0].points[splinePoint].radius = 0
+        Generator.LeavesSpawnPosList.append(bpy.context.object.data.splines[0].points[splinePoint].co)
+        
+        
+        #cleanup
+        bpy.ops.curve.de_select_first()
+        bpy.ops.curve.delete(type='VERT')
+        bpy.ops.curve.de_select_first()
+        bpy.ops.curve.delete(type='VERT')
+        bpy.ops.object.editmode_toggle()
+        
+        part = bpy.context.object
+        Generator.TreePartsList.append(part)
+        
+        stem = bpy.context.active_object.data.splines[0]        
+        stemLength = len(stem.points)
+        j = 1
+        while (j<stemLength-2):
+            j = j+1
+            if (random.uniform(0,10)<(twigPercentage*10)):
+                branchPoint = stem.points[j]
+                branchStart = (StartingPoint[0] + branchPoint.co[0], StartingPoint[1] + branchPoint.co[1], StartingPoint[2] + branchPoint.co[2])
+                branchRootPoint = stem.points[j-1]
+                branchRoot = (StartingPoint[0] + branchRootPoint.co[0], StartingPoint[1] + branchRootPoint.co[1], StartingPoint[2] + branchRootPoint.co[2])
+                RootToStart = ((branchStart[0] - branchRoot[0])*0.5,(branchStart[1] - branchRoot[1])*0.5,(branchStart[2] - branchRoot[2])*0.5)
+                fixedRoot = (branchRoot[0] + RootToStart[0],branchRoot[1] + RootToStart[1],branchRoot[2] + RootToStart[2])
+                Generator.generateBranch(height-j,segments-j,streightness,stemRadius*(stemLength-j)/stemLength*0.8,stemRadiusChangeFactor, maxStemOutbreak, 1, fixedRoot, RootToStart)
+        TPLLength = len(Generator.TreePartsList)
+        print (TPLLength)
+
+    def generateBranch (height, segments, streightness, stemRadius, stemRadiusChangeFactor, maxStemOutbreak , depth, branchRoot, StartingPoint):
+        
+        #base
+        bpy.ops.curve.primitive_nurbs_path_add(enter_editmode=True, align='WORLD', location=branchRoot, scale=(1, 1, 1))
+        bpy.ops.curve.select_all(action='TOGGLE')
+        bpy.ops.curve.de_select_last()
+        bpy.ops.curve.delete(type='VERT')
+        bpy.ops.curve.de_select_last()
+        bpy.ops.curve.delete(type='VERT')
+        bpy.ops.curve.de_select_last()
+        bpy.ops.curve.extrude_move(CURVE_OT_extrude={"mode":'TRANSLATION'}, TRANSFORM_OT_translate={"value":StartingPoint, "orient_axis_ortho":'X', "orient_type":'GLOBAL', "orient_matrix":((1, 0, 0), (0, 1, 0), (0, 0, 1)), "orient_matrix_type":'GLOBAL', "constraint_axis":(False, False, False), "mirror":False, "use_proportional_edit":False, "proportional_edit_falloff":'SMOOTH', "proportional_size":1, "use_proportional_connected":False, "use_proportional_projected":False, "snap":False, "snap_elements":{'INCREMENT'}, "use_snap_project":False, "snap_target":'CLOSEST', "use_snap_self":False, "use_snap_edit":False, "use_snap_nonedit":False, "use_snap_selectable":False, "snap_point":(0, 0, 0), "snap_align":False, "snap_normal":(0, 0, 0), "gpencil_strokes":False, "cursor_transform":False, "texture_space":False, "remove_on_cancel":False, "view2d_edge_pan":False, "release_confirm":False, "use_accurate":False, "use_automerge_and_split":False})
+        bpy.context.object.data.bevel_depth = stemRadius
+        bpy.context.object.data.use_fill_caps = True
+        bpy.context.object.data.splines[0].points[0].radius = 0
+        
+        #stem loop
+        EndPoint = (StartingPoint[0],StartingPoint[1],StartingPoint[2]+1)
+        actHeight = StartingPoint[2]
+        deltaHeight = height - actHeight
+        heightRangeMin = deltaHeight/segments*0.9
+        heightRangeMax = deltaHeight/segments*1.1
+        splinePoint = 2
+        i = 0
+        while i < segments:
+            i += 1
+            addHeight = random.uniform(heightRangeMin,heightRangeMax)
+            if (actHeight + addHeight > height):
+                addHeight = height - actHeight
+                actHeight = height
+            else:
+                actHeight += addHeight
+            newX = random.uniform(-streightness,streightness)
+            newY = random.uniform(-streightness,streightness)
+            newPath = (newX, newY, addHeight)
+            EndPoint = (EndPoint[0]+newPath[0],EndPoint[1]+newPath[1],EndPoint[2]+newPath[2])
+            bpy.ops.curve.extrude_move(CURVE_OT_extrude={"mode":'TRANSLATION'}, TRANSFORM_OT_translate={"value":newPath, "orient_axis_ortho":'X', "orient_type":'GLOBAL', "orient_matrix":((1, 0, 0), (0, 1, 0), (0, 0, 1)), "orient_matrix_type":'GLOBAL', "constraint_axis":(False, False, False), "mirror":False, "use_proportional_edit":False, "proportional_edit_falloff":'SMOOTH', "proportional_size":1, "use_proportional_connected":False, "use_proportional_projected":False, "snap":False, "snap_elements":{'INCREMENT'}, "use_snap_project":False, "snap_target":'CLOSEST', "use_snap_self":False, "use_snap_edit":False, "use_snap_nonedit":False, "use_snap_selectable":False, "snap_point":(0, 0, 0), "snap_align":False, "snap_normal":(0, 0, 0), "gpencil_strokes":False, "cursor_transform":False, "texture_space":False, "remove_on_cancel":False, "view2d_edge_pan":False, "release_confirm":False, "use_accurate":False, "use_automerge_and_split":False})
+            splinePoint += 1
+            nextRadius = 1-(actHeight/height)
+            bpy.context.object.data.splines[0].points[splinePoint].radius = nextRadius + ((1-nextRadius)*stemRadiusChangeFactor)
+        bpy.context.object.data.splines[0].points[splinePoint].radius = 0
+        Generator.LeavesSpawnPosList.append(bpy.context.object.data.splines[0].points[splinePoint].co)
+        
+        
+        #cleanup
+        bpy.ops.curve.de_select_first()
+        bpy.ops.curve.delete(type='VERT')
+        bpy.ops.curve.de_select_first()
+        bpy.ops.curve.delete(type='VERT')
+        bpy.ops.object.editmode_toggle()
+
+        part = bpy.context.object
+        Generator.TreePartsList.append(part)
+
+        if (depth > 0):
+            stem = bpy.context.active_object.data.splines[0]
+            stemLength = len(stem.points)
+            j = 1
+            while (j<stemLength-2):
+                j = j+1
+                if (random.uniform(0,10)<(0.4*10)):
+                    branchPoint = stem.points[j]
+                    branchStart = (branchPoint.co[0], branchPoint.co[1], branchPoint.co[2])
+                    branchRootPoint = stem.points[j-1]
+                    branchRootStart = (branchRootPoint.co[0], branchRootPoint.co[1], branchRootPoint.co[2])
+                    newBranchRoot = (branchRoot[0] + branchRootStart[0],branchRoot[1] + branchRootStart[1],branchRoot[2] + branchRootStart[2])
+                    newBranchStart = (branchRoot[0] + branchStart[0],branchRoot[1] + branchStart[1],branchRoot[2] + branchStart[2])
+                    RootToStart = ((newBranchStart[0] - newBranchRoot[0])*0.5,(newBranchStart[1] - newBranchRoot[1])*0.5,(newBranchStart[2] - newBranchRoot[2])*0.5)
+                    fixedRoot = (newBranchRoot[0] + RootToStart[0],newBranchRoot[1] + RootToStart[1],newBranchRoot[2] + RootToStart[2])
+                    Generator.generateBranch(height-j,segments,streightness*((stemLength-j)*(1/stemLength)),stemRadius*(stemLength-j-1)/stemLength*0.8,stemRadiusChangeFactor, maxStemOutbreak, depth-1, fixedRoot, RootToStart)
+
+    def mergePaths ():
+        TPLLength = len(Generator.TreePartsList)
+        print (TPLLength)
+        k = 0
+        while (k<TPLLength):
+            print(Generator.TreePartsList[k])
+            Generator.TreePartsList[k].select_set(True)
+            print(Generator.LeavesSpawnPosList[k])
+            k = k+1
+        bpy.ops.object.convert(target='MESH')
+        bpy.ops.object.booltool_auto_union()
+        bpy.context.object.name = "Tree"
+        Generator.Tree = bpy.context.object
+
 
 class GenNewBark(bpy.types.Operator):
     bl_idname = "object.gennewbark"
