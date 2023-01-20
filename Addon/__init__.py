@@ -25,7 +25,6 @@ PROPS = [
     ('radius', bpy.props.FloatProperty(name='Stem Radius',default=0.5,min=0.1, max=2.0, step=0.01 ,precision=3, unit='LENGTH')),
     ('branch_chance', bpy.props.IntProperty(name='Branch Chance', subtype="PERCENTAGE",default = 10, min=0, max=100, step=1)),
     ('max_distance_from_middle', bpy.props.IntProperty(name='Max Distance From Middle', default = 10, min = 1, max = 100, step=1)),
-    ('straightness', bpy.props.IntProperty(name='Straigness', subtype="PERCENTAGE",default = 10, min=0, max=100, step=1)),
     ('leaf_object', bpy.props.PointerProperty(type=bpy.types.Object ,name='Leaf Object')),
     ('bark_object', bpy.props.PointerProperty(type=bpy.types.Object ,name='Bark Object')),
     ('leaf_mat', bpy.props.PointerProperty(type=bpy.types.Material ,name='Leaf Material')),
@@ -49,6 +48,7 @@ class TestOperator(bpy.types.Operator):
 
     def execute(self, context):
         print("Start Testing")
+        ResetSeed()
         s = bpy.context.scene
         Generator.generateStem(s.max_height,(s.max_height/s.path_length), s.path_length,s.radius ,0.2,s.branch_chance/10,s.max_distance_from_middle,(0,0,0))
         Generator.mergePaths()
@@ -247,6 +247,7 @@ class Generator():
         bpy.ops.object.booltool_auto_union()
         bpy.context.object.name = "Tree"
         Generator.Tree = bpy.context.object
+        bpy.context.scene.bark_object = bpy.context.object
 
     def generateLeavesBall ():
         leavesLen = len(Generator.LeavesSpawnPosList)
@@ -267,7 +268,8 @@ class Generator():
         bpy.ops.object.booltool_auto_union()
         bpy.context.object.name = "Leaves"
         Generator.Leaves = bpy.context.active_object
-        
+        bpy.context.scene.leaf_object = bpy.context.object
+
 class GenExchangeString(bpy.types.Operator):
     bl_idname = "object.genexchangestring"
     bl_label = "Generates Exchange String"
@@ -279,10 +281,10 @@ class GenExchangeString(bpy.types.Operator):
     def execute(self, context):
         exchangeJson = {
             "max_height": bpy.context.scene.max_height,
-            "path_lenght": bpy.context.scene.path_lenght,
+            "path_length": bpy.context.scene.path_length,
             "branch_chance": bpy.context.scene.branch_chance,
+            "radius": bpy.context.scene.radius,
             "max_distance_from_middle": bpy.context.scene.max_distance_from_middle,
-            "straightness": bpy.context.scene.straightness,
             "primary_seed": bpy.context.scene.primary_seed,
             "secondary_seed": bpy.context.scene.secondary_seed,
             "bool_detail_bark": bpy.context.scene.bool_detail_bark,
@@ -314,10 +316,10 @@ class UseExchangeString(bpy.types.Operator):
         jsonString = base64.b64decode(b64_exchange_string).decode('utf-8')
         exchangeJson = json.loads(jsonString)
         bpy.context.scene.max_height = exchangeJson["max_height"]
-        bpy.context.scene.path_lenght = exchangeJson["path_lenght"]
+        bpy.context.scene.path_length = exchangeJson["path_length"]
         bpy.context.scene.branch_chance = exchangeJson["branch_chance"]
+        bpy.context.scene.radius = exchangeJson["radius"]
         bpy.context.scene.max_distance_from_middle = exchangeJson["max_distance_from_middle"]
-        bpy.context.scene.straightness = exchangeJson["straightness"]
         bpy.context.scene.primary_seed = exchangeJson["primary_seed"]
         bpy.context.scene.secondary_seed = exchangeJson["secondary_seed"]
         bpy.context.scene.bool_detail_bark = exchangeJson["bool_detail_bark"]
@@ -705,6 +707,15 @@ def StringSeedToNumber(_str: str):
 
     return num
 
+def ResetSeed():
+    currSeed = StringSeedToNumber(bpy.context.scene.primary_seed)
+    global random1
+    random1 = np.random.RandomState(currSeed)
+    currSeed = StringSeedToNumber(bpy.context.scene.secondary_seed)
+    global random2
+    random2 = np.random.RandomState(currSeed)
+
+
 old_primary_seed: str = ""
 old_secondary_seed: str = ""
 
@@ -716,6 +727,7 @@ def mainfunc():
     global old_secondary_seed
     global random2
     materialChanged = False
+    barkChanged = False
     if leaf_obj is not None and leaf_mat is not None:
         if leaf_obj.data.materials:
             if(leaf_obj.data.materials[0] != leaf_mat):
@@ -727,8 +739,7 @@ def mainfunc():
             materialChanged = True
             print("Leaf changed")
     
-    # bark_obj: bpy.types.Object = bpy.context.scene.bark_object
-    bark_obj: bpy.types.Object = bpy.context.scene.objects["Cube"]
+    bark_obj: bpy.types.Object = bpy.context.scene.bark_object
     bark_mat: bpy.types.Material = bpy.context.scene.bark_mat
     
     if bark_obj is not None and bark_mat is not None:
@@ -761,6 +772,10 @@ def mainfunc():
         currSeed = StringSeedToNumber(bpy.context.scene.secondary_seed)
         random2 = np.random.RandomState(currSeed)
 
+    if(barkChanged):
+        currSeed = StringSeedToNumber(bpy.context.scene.primary_seed)
+        random1 = np.random.RandomState(currSeed)
+
 
 
 
@@ -792,10 +807,7 @@ class TreeGenPanel(bpy.types.Panel):
         row = layout.row()
         row.prop(context.scene, "max_distance_from_middle", slider=True)
         row = layout.row()
-        row.prop(context.scene, "straightness", slider=True)
-        row = layout.row()
         row.prop(context.scene, "texture_quality", slider=True)
-        #print(bpy.context.scene.max_height)
 
         layout.separator()
         row = layout.row()
