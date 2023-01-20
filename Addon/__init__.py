@@ -267,6 +267,7 @@ class Generator():
         bpy.ops.object.booltool_auto_union()
         bpy.context.object.name = "Leaves"
         Generator.Leaves = bpy.context.active_object
+        
 class GenExchangeString(bpy.types.Operator):
     bl_idname = "object.genexchangestring"
     bl_label = "Generates Exchange String"
