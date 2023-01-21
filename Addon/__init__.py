@@ -78,13 +78,13 @@ class Generator():
             newY = 0
             OldCo = FormSpline.points[i].co
             if (OldCo[0] < 0):
-                newX = (0.5+GetRand(1))*-1
+                newX = (0.5+GetRand(3))*-1
             if (OldCo[0] > 0):
-                newX = 0.5+GetRand(1)
+                newX = 0.5+GetRand(3)
             if (OldCo[1] < 0):
-                newY = (0.5+GetRand(1))*-1
+                newY = (0.5+GetRand(3))*-1
             if (OldCo[1] > 0):
-                newY = 0.5+GetRand(1)
+                newY = 0.5+GetRand(3)
             FormSpline.points[i].co = (newX,newY,0,1)
             i = i+1
         bpy.ops.object.editmode_toggle()
@@ -138,11 +138,7 @@ class Generator():
         while i < segments:
             i += 1
             addHeight = heightRangeMin+GetRand(1)*(heightRangeMax-heightRangeMin)
-            if (actHeight + addHeight > height):
-                addHeight = height - actHeight
-                actHeight = height
-            else:
-                actHeight += addHeight
+            actHeight += addHeight
             def StemInRadius(radius):
                 newX = GetRand(1)*streightness*2-streightness
                 newY = GetRand(1)*streightness*2-streightness
@@ -203,7 +199,6 @@ class Generator():
         bpy.ops.curve.delete(type='VERT')
         bpy.ops.curve.de_select_last()
         bpy.ops.curve.extrude_move(CURVE_OT_extrude={"mode":'TRANSLATION'}, TRANSFORM_OT_translate={"value":StartingPoint, "orient_axis_ortho":'X', "orient_type":'GLOBAL', "orient_matrix":((1, 0, 0), (0, 1, 0), (0, 0, 1)), "orient_matrix_type":'GLOBAL', "constraint_axis":(False, False, False), "mirror":False, "use_proportional_edit":False, "proportional_edit_falloff":'SMOOTH', "proportional_size":1, "use_proportional_connected":False, "use_proportional_projected":False, "snap":False, "snap_elements":{'INCREMENT'}, "use_snap_project":False, "snap_target":'CLOSEST', "use_snap_self":False, "use_snap_edit":False, "use_snap_nonedit":False, "use_snap_selectable":False, "snap_point":(0, 0, 0), "snap_align":False, "snap_normal":(0, 0, 0), "gpencil_strokes":False, "cursor_transform":False, "texture_space":False, "remove_on_cancel":False, "view2d_edge_pan":False, "release_confirm":False, "use_accurate":False, "use_automerge_and_split":False})
-        bpy.context.object.data.bevel_depth = stemRadius
         bpy.context.object.data.use_fill_caps = True
         
         #stem loop
@@ -257,7 +252,7 @@ class Generator():
                     newBranchStart = (branchRoot[0] + branchStart[0],branchRoot[1] + branchStart[1],branchRoot[2] + branchStart[2])
                     RootToStart = ((newBranchStart[0] - newBranchRoot[0])*0.5,(newBranchStart[1] - newBranchRoot[1])*0.5,(newBranchStart[2] - newBranchRoot[2])*0.5)
                     fixedRoot = (newBranchRoot[0] + RootToStart[0],newBranchRoot[1] + RootToStart[1],newBranchRoot[2] + RootToStart[2])
-                    Generator.generateBranch(height*(1-j/stemLength)*0.5,segments,streightness*((stemLength-j)*(1/stemLength)),branchPoint.radius*1.1,stemRadiusChangeFactor, maxStemOutbreak, twigPercentage, depth-1, fixedRoot, RootToStart)
+                    Generator.generateBranch(height*(1-j/stemLength)*0.5,segments,streightness*((stemLength-j)*(1/stemLength)),branchPoint.radius,stemRadiusChangeFactor*0.3, maxStemOutbreak, twigPercentage, depth-1, fixedRoot, RootToStart)
 
     def mergePaths ():
         TPLLength = len(Generator.TreePartsList)
@@ -269,11 +264,12 @@ class Generator():
             print(Generator.LeavesSpawnPosList[k])
             k = k+1
         bpy.ops.object.convert(target='MESH')
-        bpy.ops.object.booltool_auto_union()
+        bpy.ops.object.join()
         Generator.Tree = bpy.context.object
         Generator.Tree.parent = bpy.context.scene.base_object
         bpy.context.scene.bark_object = bpy.context.object
         bpy.context.object.name = "Generated Tree"
+        bpy.data.objects.remove(Generator.Form)
 
     def generateLeavesBall ():
         leavesLen = len(Generator.LeavesSpawnPosList)
@@ -728,12 +724,15 @@ def make_empty(name, location, coll_name): #string, vector, string of existing c
 
 random1: np.random.RandomState = np.random.RandomState(1)
 random2: np.random.RandomState = np.random.RandomState(1)
+random3: np.random.RandomState = np.random.RandomState(1)
 
 def GetRand(seedtype: int): 
     if(seedtype == 1):
         return random1.random()
     if(seedtype == 2):
         return random2.random()
+    if(seedtype == 3):
+        return random3.random()
     
 def StringSeedToNumber(_str: str):
     num: int = 0
