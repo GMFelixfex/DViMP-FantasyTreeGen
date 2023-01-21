@@ -5,6 +5,7 @@ import numpy as np
 import sys
 import json
 import base64
+import math
 
 bl_info = {
     "name": "Customized Tree Generator",
@@ -23,10 +24,10 @@ PROPS = [
     ('max_height', bpy.props.FloatProperty(name='Max Height',default=4.0,min=1.0, max=100.0, soft_max=20.0, soft_min=4.0, step=0.1 ,precision=3, unit='LENGTH')),
     ('path_length', bpy.props.FloatProperty(name='Path Lenght', default=1.0,min=0.1, max=100.0, soft_max=2.0, soft_min=0.01, step=0.01 ,precision=3 , unit='LENGTH')),
     ('radius', bpy.props.FloatProperty(name='Stem Radius',default=0.5,min=0.1, max=2.0, step=0.01 ,precision=3, unit='LENGTH')),
-    ('straightness', bpy.props.IntProperty(name='Straightness', subtype="PERCENTAGE",default = 10, min=0, max=100, step=1)),
+    ('straightness', bpy.props.IntProperty(name='Straightness', subtype="PERCENTAGE",default = 60, min=50, max=90, step=1)),
     ('branch_chance', bpy.props.IntProperty(name='Branch Chance', subtype="PERCENTAGE",default = 10, min=0, max=100, step=1)),
     ('branch_change', bpy.props.FloatProperty(name='Branch Radius Change',default = 0.8, min=0, max=1, step=0.01)),
-    ('max_distance_from_middle', bpy.props.IntProperty(name='Max Distance From Middle', default = 10, min = 1, max = 100, step=1)),
+    ('max_distance_from_middle', bpy.props.FloatProperty(name='Max Distance From Middle', default = 5, min = 1, max = 10, step=0.5)),
     ('leaf_object', bpy.props.PointerProperty(type=bpy.types.Object ,name='Leaf Object')),
     ('bark_object', bpy.props.PointerProperty(type=bpy.types.Object ,name='Bark Object')),
     ('base_object', bpy.props.PointerProperty(type=bpy.types.Object ,name='Base Object')),
@@ -127,8 +128,9 @@ class Generator():
         bpy.ops.curve.delete(type='VERT')
         bpy.ops.curve.de_select_last()
         bpy.ops.curve.extrude_move(CURVE_OT_extrude={"mode":'TRANSLATION'}, TRANSFORM_OT_translate={"value":(0, 0, 1), "orient_axis_ortho":'X', "orient_type":'GLOBAL', "orient_matrix":((1, 0, 0), (0, 1, 0), (0, 0, 1)), "orient_matrix_type":'GLOBAL', "constraint_axis":(False, False, False), "mirror":False, "use_proportional_edit":False, "proportional_edit_falloff":'SMOOTH', "proportional_size":1, "use_proportional_connected":False, "use_proportional_projected":False, "snap":False, "snap_elements":{'INCREMENT'}, "use_snap_project":False, "snap_target":'CLOSEST', "use_snap_self":False, "use_snap_edit":False, "use_snap_nonedit":False, "use_snap_selectable":False, "snap_point":(0, 0, 0), "snap_align":False, "snap_normal":(0, 0, 0), "gpencil_strokes":False, "cursor_transform":False, "texture_space":False, "remove_on_cancel":False, "view2d_edge_pan":False, "release_confirm":False, "use_accurate":False, "use_automerge_and_split":False})
-        bpy.context.object.data.bevel_depth = stemRadius
         bpy.context.object.data.use_fill_caps = True
+        bpy.context.object.data.splines[0].points[0].radius = stemRadius
+        bpy.context.object.data.splines[0].points[1].radius = stemRadius
         
         #stem loop
         EndPoint = (StartingPoint[0],StartingPoint[1],StartingPoint[2]+1)
@@ -142,11 +144,15 @@ class Generator():
             addHeight = heightRangeMin+GetRand(1)*(heightRangeMax-heightRangeMin)
             actHeight += addHeight
             def StemInRadius(radius):
-                newX = GetRand(1)*streightness*2-streightness
-                newY = GetRand(1)*streightness*2-streightness
+                newX = (GetRand(1)*maxStemOutbreak*2-maxStemOutbreak)/2
+                newY = (GetRand(1)*maxStemOutbreak*2-maxStemOutbreak)/2
                 spline = bpy.context.object.data.splines[0]
+                point = spline.points[splinePoint].co
                 newPath = (newX, newY, addHeight)
-                if (((spline.points[splinePoint].co[0] + newX)*(spline.points[splinePoint].co[0] + newX)) + ((spline.points[splinePoint].co[1] + newY)*(spline.points[splinePoint].co[1] + newY))>(radius*radius)):
+                a2 = (point[0]+newX)*(point[0]+newX)
+                b2 = (point[1]+newY)*(point[1]+newY)
+                c2 = radius*radius
+                if ((a2+b2)>c2):
                     return StemInRadius(radius)
                 else:
                     return newPath
@@ -154,7 +160,7 @@ class Generator():
             EndPoint = (EndPoint[0]+newPath[0],EndPoint[1]+newPath[1],EndPoint[2]+newPath[2])
             bpy.ops.curve.extrude_move(CURVE_OT_extrude={"mode":'TRANSLATION'}, TRANSFORM_OT_translate={"value":newPath, "orient_axis_ortho":'X', "orient_type":'GLOBAL', "orient_matrix":((1, 0, 0), (0, 1, 0), (0, 0, 1)), "orient_matrix_type":'GLOBAL', "constraint_axis":(False, False, False), "mirror":False, "use_proportional_edit":False, "proportional_edit_falloff":'SMOOTH', "proportional_size":1, "use_proportional_connected":False, "use_proportional_projected":False, "snap":False, "snap_elements":{'INCREMENT'}, "use_snap_project":False, "snap_target":'CLOSEST', "use_snap_self":False, "use_snap_edit":False, "use_snap_nonedit":False, "use_snap_selectable":False, "snap_point":(0, 0, 0), "snap_align":False, "snap_normal":(0, 0, 0), "gpencil_strokes":False, "cursor_transform":False, "texture_space":False, "remove_on_cancel":False, "view2d_edge_pan":False, "release_confirm":False, "use_accurate":False, "use_automerge_and_split":False})
             splinePoint += 1
-            nextRadius = 1-(actHeight/height)
+            nextRadius = stemRadius*(1-(actHeight/height))
             bpy.context.object.data.splines[0].points[splinePoint].radius = nextRadius + ((1-nextRadius)*stemRadiusChangeFactor)
         bpy.context.object.data.splines[0].points[splinePoint].radius = 0
         branch = bpy.context.object.data.splines[0].points[splinePoint]
@@ -184,7 +190,7 @@ class Generator():
                 branchRoot = (StartingPoint[0] + branchRootPoint.co[0], StartingPoint[1] + branchRootPoint.co[1], StartingPoint[2] + branchRootPoint.co[2])
                 RootToStart = ((branchStart[0] - branchRoot[0])*0.5,(branchStart[1] - branchRoot[1])*0.5,(branchStart[2] - branchRoot[2])*0.5)
                 fixedRoot = (branchRoot[0] + RootToStart[0],branchRoot[1] + RootToStart[1],branchRoot[2] + RootToStart[2])
-                Generator.generateBranch(height-j,segments-j,streightness,branchRootPoint.radius*BranchRadiusFactor,stemRadiusChangeFactor, maxStemOutbreak, twigPercentage, 1, fixedRoot, RootToStart)
+                Generator.generateBranch(height-j,segments-j,maxStemOutbreak/2,branchRootPoint.radius*BranchRadiusFactor,stemRadiusChangeFactor, maxStemOutbreak, twigPercentage, 1, fixedRoot, RootToStart)
         TPLLength = len(Generator.TreePartsList)
         print (TPLLength)
 
@@ -211,17 +217,42 @@ class Generator():
         splinePoint = 2
         i = 0
         while i < segments:
-            i += 1
-            addHeight = heightRangeMin+GetRand(1)*(heightRangeMax-heightRangeMin)
-            actHeight += addHeight
-            newX = GetRand(1)*streightness*2-streightness
-            newY = GetRand(1)*streightness*2-streightness
-            newPath = (newX, newY, addHeight)
+            newPath = (0,0,0)
+            s = bpy.context.scene
+            if (splinePoint>2):
+                def BranchInDirection(diversion):
+                    newX = GetRand(1)*streightness*2-streightness
+                    newY = GetRand(1)*streightness*2-streightness
+                    addHeight = heightRangeMin+GetRand(1)*(heightRangeMax-heightRangeMin)
+                    newVector = (newX, newY, addHeight)
+                    spline = bpy.context.object.data.splines[0]
+                    point = spline.points[splinePoint].co
+                    prevPoint = spline.points[splinePoint-1].co
+                    prevVector = (point[0]-prevPoint[0],point[1]-prevPoint[1],point[2]-prevPoint[2])
+                    scalar = prevVector[0]*newVector[0]+prevVector[1]*newVector[1]+prevVector[2]*newVector[2]
+                    ALen = math.sqrt(prevVector[0]*prevVector[0]+prevVector[1]*prevVector[1]+prevVector[2]*prevVector[2])
+                    BLen = math.sqrt(newVector[0]*newVector[0]+newVector[1]*newVector[1]+newVector[2]*newVector[2])
+                    cosy = scalar/(ALen*BLen)
+                    normCosY = math.sqrt(cosy*cosy)
+                    print(cosy)
+                    if (normCosY<diversion):
+                        return BranchInDirection(diversion)
+                    else:
+                        return newVector
+                newPath = BranchInDirection(s.straightness/100)
+                actHeight += newPath[2]
+            else:
+                addHeight = heightRangeMin+GetRand(1)*(heightRangeMax-heightRangeMin)
+                actHeight += addHeight
+                newX = GetRand(1)*streightness*2-streightness
+                newY = GetRand(1)*streightness*2-streightness
+                newPath = (newX, newY, addHeight)
             EndPoint = (EndPoint[0]+newPath[0],EndPoint[1]+newPath[1],EndPoint[2]+newPath[2])
             bpy.ops.curve.extrude_move(CURVE_OT_extrude={"mode":'TRANSLATION'}, TRANSFORM_OT_translate={"value":newPath, "orient_axis_ortho":'X', "orient_type":'GLOBAL', "orient_matrix":((1, 0, 0), (0, 1, 0), (0, 0, 1)), "orient_matrix_type":'GLOBAL', "constraint_axis":(False, False, False), "mirror":False, "use_proportional_edit":False, "proportional_edit_falloff":'SMOOTH', "proportional_size":1, "use_proportional_connected":False, "use_proportional_projected":False, "snap":False, "snap_elements":{'INCREMENT'}, "use_snap_project":False, "snap_target":'CLOSEST', "use_snap_self":False, "use_snap_edit":False, "use_snap_nonedit":False, "use_snap_selectable":False, "snap_point":(0, 0, 0), "snap_align":False, "snap_normal":(0, 0, 0), "gpencil_strokes":False, "cursor_transform":False, "texture_space":False, "remove_on_cancel":False, "view2d_edge_pan":False, "release_confirm":False, "use_accurate":False, "use_automerge_and_split":False})
             splinePoint += 1
             nextRadius = stemRadius*(segments-i-1)/segments*0.8
             bpy.context.object.data.splines[0].points[splinePoint].radius = nextRadius + ((1-nextRadius)*stemRadiusChangeFactor)
+            i += 1
         bpy.context.object.data.splines[0].points[splinePoint].radius = 0
         branch = bpy.context.object.data.splines[0].points[splinePoint]
         actualPath = (branch.co[0] + branchRoot[0],branch.co[1] + branchRoot[1],branch.co[2] + branchRoot[2])
@@ -254,7 +285,7 @@ class Generator():
                     newBranchStart = (branchRoot[0] + branchStart[0],branchRoot[1] + branchStart[1],branchRoot[2] + branchStart[2])
                     RootToStart = ((newBranchStart[0] - newBranchRoot[0])*0.5,(newBranchStart[1] - newBranchRoot[1])*0.5,(newBranchStart[2] - newBranchRoot[2])*0.5)
                     fixedRoot = (newBranchRoot[0] + RootToStart[0],newBranchRoot[1] + RootToStart[1],newBranchRoot[2] + RootToStart[2])
-                    Generator.generateBranch(height*(1-j/stemLength)*0.5,segments,streightness*((stemLength-j)*(1/stemLength)),branchPoint.radius,stemRadiusChangeFactor*0.3, maxStemOutbreak, twigPercentage, depth-1, fixedRoot, RootToStart)
+                    Generator.generateBranch(height*(1-j/stemLength)*0.5,segments,streightness/2,branchPoint.radius,stemRadiusChangeFactor*0.3, maxStemOutbreak, twigPercentage, depth-1, fixedRoot, RootToStart)
 
     def mergePaths ():
         TPLLength = len(Generator.TreePartsList)
