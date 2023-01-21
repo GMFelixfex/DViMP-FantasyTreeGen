@@ -27,6 +27,7 @@ PROPS = [
     ('max_distance_from_middle', bpy.props.IntProperty(name='Max Distance From Middle', default = 10, min = 1, max = 100, step=1)),
     ('leaf_object', bpy.props.PointerProperty(type=bpy.types.Object ,name='Leaf Object')),
     ('bark_object', bpy.props.PointerProperty(type=bpy.types.Object ,name='Bark Object')),
+    ('base_object', bpy.props.PointerProperty(type=bpy.types.Object ,name='Base Object')),
     ('leaf_mat', bpy.props.PointerProperty(type=bpy.types.Material ,name='Leaf Material')),
     ('bark_mat', bpy.props.PointerProperty(type=bpy.types.Material ,name='Bark Material')),
     ('primary_seed', bpy.props.StringProperty(name='Primary Seed', default = "0")),
@@ -50,6 +51,9 @@ class TestOperator(bpy.types.Operator):
         print("Start Testing")
         ResetSeed()
         s = bpy.context.scene
+        if(s.base_object == None):
+            s.base_object = make_empty("Generated Tree Base", bpy.context.scene.cursor.location,0)
+        
         Generator.generateStem(s.max_height,(s.max_height/s.path_length), s.path_length,s.radius ,0.2,s.branch_chance/10,s.max_distance_from_middle,(0,0,0))
         Generator.mergePaths()
         Generator.generateLeavesBall()
@@ -59,23 +63,21 @@ class Generator():
     
     TreePartsList = []
     LeavesSpawnPosList = []
-    Tree = None
-    Leaves = None
+    Tree: bpy.types.Object = None
+    Leaves: bpy.types.Object = None
 
 
     def generateStem (height:float, segments, streightness, stemRadius, stemRadiusChangeFactor, twigPercentage, maxStemOutbreak, StartingPoint):
         
         if (Generator.Tree != None):
             try:
-                Generator.Tree.select_set(True)
-                bpy.ops.object.delete()
+                bpy.data.objects.remove(Generator.Tree, do_unlink=True)
             except:
                 Generator.Tree = None
 
         if (Generator.Leaves != None):
             try:
-                Generator.Leaves.select_set(True)
-                bpy.ops.object.delete()
+                bpy.data.objects.remove(Generator.Leaves, do_unlink=True)
             except:
                 Generator.Leaves = None
 
@@ -245,9 +247,10 @@ class Generator():
             k = k+1
         bpy.ops.object.convert(target='MESH')
         bpy.ops.object.booltool_auto_union()
-        bpy.context.object.name = "Tree"
         Generator.Tree = bpy.context.object
+        Generator.Tree.parent = bpy.context.scene.base_object
         bpy.context.scene.bark_object = bpy.context.object
+        bpy.context.object.name = "Generated Tree"
 
     def generateLeavesBall ():
         leavesLen = len(Generator.LeavesSpawnPosList)
@@ -266,9 +269,10 @@ class Generator():
             leaves[i].select_set(True)
             i = i+1
         bpy.ops.object.booltool_auto_union()
-        bpy.context.object.name = "Leaves"
         Generator.Leaves = bpy.context.active_object
+        Generator.Leaves.parent = bpy.context.scene.base_object
         bpy.context.scene.leaf_object = bpy.context.object
+        bpy.context.object.name = "Generated Leaves"
 
 class GenExchangeString(bpy.types.Operator):
     bl_idname = "object.genexchangestring"
@@ -690,6 +694,15 @@ class SecondarySeedGenOperator(bpy.types.Operator):
 #         layout.prop_search(self, "material_name", bpy.data, "materials")
 # 
 
+def make_empty(name, location, coll_name): #string, vector, string of existing coll
+    empty_obj = bpy.data.objects.new( "empty", None, )
+    empty_obj.name = name
+    empty_obj.empty_display_size = 1 
+    bpy.data.collections[coll_name].objects.link(empty_obj)
+    empty_obj.location = location
+    return empty_obj
+
+
 random1: np.random.RandomState = np.random.RandomState(1)
 random2: np.random.RandomState = np.random.RandomState(1)
 
@@ -850,7 +863,7 @@ class TreeGenPanel(bpy.types.Panel):
         row = layout.row()
         row.label(text="Generation Option:")
         row = layout.row()
-        row.prop(context.scene, "bark_object")
+        row.prop(context.scene, "base_object")
         row = layout.row()
         row.operator("object.testoperator", text="Generate Tree")
 
