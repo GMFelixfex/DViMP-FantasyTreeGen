@@ -24,6 +24,7 @@ PROPS = [
     ('path_length', bpy.props.FloatProperty(name='Path Lenght', default=1.0,min=0.1, max=100.0, soft_max=2.0, soft_min=0.01, step=0.01 ,precision=3 , unit='LENGTH')),
     ('radius', bpy.props.FloatProperty(name='Stem Radius',default=0.5,min=0.1, max=2.0, step=0.01 ,precision=3, unit='LENGTH')),
     ('branch_chance', bpy.props.IntProperty(name='Branch Chance', subtype="PERCENTAGE",default = 10, min=0, max=100, step=1)),
+    ('branch_change', bpy.props.FloatProperty(name='Branch Radius Change',default = 0.8, min=0, max=1, step=0.01)),
     ('max_distance_from_middle', bpy.props.IntProperty(name='Max Distance From Middle', default = 10, min = 1, max = 100, step=1)),
     ('leaf_object', bpy.props.PointerProperty(type=bpy.types.Object ,name='Leaf Object')),
     ('bark_object', bpy.props.PointerProperty(type=bpy.types.Object ,name='Bark Object')),
@@ -53,8 +54,8 @@ class TestOperator(bpy.types.Operator):
         s = bpy.context.scene
         if(s.base_object == None):
             s.base_object = make_empty("Generated Tree Base", bpy.context.scene.cursor.location,0)
-        
-        Generator.generateStem(s.max_height,(s.max_height/s.path_length), s.path_length,s.radius ,0.2,s.branch_chance/10,s.max_distance_from_middle,(0,0,0))
+        Generator.generateForm()
+        Generator.generateStem(s.max_height,(s.max_height/s.path_length), s.path_length,s.radius ,0.2,s.branch_change,s.branch_chance/10,s.max_distance_from_middle,(0,0,0))
         Generator.mergePaths()
         Generator.generateLeavesBall()
         return {'FINISHED'}
@@ -65,9 +66,32 @@ class Generator():
     LeavesSpawnPosList = []
     Tree: bpy.types.Object = None
     Leaves: bpy.types.Object = None
+    Form = None
+    
+    def generateForm ():
+        bpy.ops.curve.primitive_nurbs_circle_add(radius=1, enter_editmode=True, align='WORLD', location=(0, 0, 0), scale=(1, 1, 1))
+        FormSpline = bpy.context.object.data.splines[0]
+        FormLen = len(bpy.context.object.data.splines[0].points)
+        i = 0
+        while (i<FormLen):
+            newX = 0
+            newY = 0
+            OldCo = FormSpline.points[i].co
+            if (OldCo[0] < 0):
+                newX = (0.5+GetRand(1))*-1
+            if (OldCo[0] > 0):
+                newX = 0.5+GetRand(1)
+            if (OldCo[1] < 0):
+                newY = (0.5+GetRand(1))*-1
+            if (OldCo[1] > 0):
+                newY = 0.5+GetRand(1)
+            FormSpline.points[i].co = (newX,newY,0,1)
+            i = i+1
+        bpy.ops.object.editmode_toggle()
+        Generator.Form = bpy.context.object
 
 
-    def generateStem (height:float, segments, streightness, stemRadius, stemRadiusChangeFactor, twigPercentage, maxStemOutbreak, StartingPoint):
+    def generateStem (height, segments, streightness, stemRadius, stemRadiusChangeFactor, BranchRadiusFactor, twigPercentage, maxStemOutbreak, StartingPoint):
         
         if (Generator.Tree != None):
             try:
@@ -92,6 +116,8 @@ class Generator():
         
         #base
         bpy.ops.curve.primitive_nurbs_path_add(enter_editmode=True, align='WORLD', location=StartingPoint, scale=(1, 1, 1))
+        bpy.context.object.data.bevel_mode = 'OBJECT'
+        bpy.context.object.data.bevel_object = Generator.Form
         bpy.ops.curve.select_all(action='TOGGLE')
         bpy.ops.curve.de_select_last()
         bpy.ops.curve.delete(type='VERT')
@@ -160,7 +186,7 @@ class Generator():
                 branchRoot = (StartingPoint[0] + branchRootPoint.co[0], StartingPoint[1] + branchRootPoint.co[1], StartingPoint[2] + branchRootPoint.co[2])
                 RootToStart = ((branchStart[0] - branchRoot[0])*0.5,(branchStart[1] - branchRoot[1])*0.5,(branchStart[2] - branchRoot[2])*0.5)
                 fixedRoot = (branchRoot[0] + RootToStart[0],branchRoot[1] + RootToStart[1],branchRoot[2] + RootToStart[2])
-                Generator.generateBranch(height-j,segments-j,streightness,stemRadius*(stemLength-j)/stemLength,stemRadiusChangeFactor, maxStemOutbreak, twigPercentage, 1, fixedRoot, RootToStart)
+                Generator.generateBranch(height-j,segments-j,streightness,branchRootPoint.radius*BranchRadiusFactor,stemRadiusChangeFactor, maxStemOutbreak, twigPercentage, 1, fixedRoot, RootToStart)
         TPLLength = len(Generator.TreePartsList)
         print (TPLLength)
 
@@ -168,6 +194,8 @@ class Generator():
         
         #base
         bpy.ops.curve.primitive_nurbs_path_add(enter_editmode=True, align='WORLD', location=branchRoot, scale=(1, 1, 1))
+        bpy.context.object.data.bevel_mode = 'OBJECT'
+        bpy.context.object.data.bevel_object = Generator.Form
         bpy.ops.curve.select_all(action='TOGGLE')
         bpy.ops.curve.de_select_last()
         bpy.ops.curve.delete(type='VERT')
@@ -181,19 +209,14 @@ class Generator():
         #stem loop
         EndPoint = (StartingPoint[0],StartingPoint[1],StartingPoint[2]+1)
         actHeight = StartingPoint[2]
-        deltaHeight = height - actHeight
-        heightRangeMin = deltaHeight/segments*0.9
-        heightRangeMax = deltaHeight/segments*1.1
+        heightRangeMin = height/segments*0.9
+        heightRangeMax = height/segments*1.1
         splinePoint = 2
         i = 0
         while i < segments:
             i += 1
             addHeight = heightRangeMin+GetRand(1)*(heightRangeMax-heightRangeMin)
-            if (actHeight + addHeight > height):
-                addHeight = height - actHeight
-                actHeight = height
-            else:
-                actHeight += addHeight
+            actHeight += addHeight
             newX = GetRand(1)*streightness*2-streightness
             newY = GetRand(1)*streightness*2-streightness
             newPath = (newX, newY, addHeight)
@@ -234,7 +257,7 @@ class Generator():
                     newBranchStart = (branchRoot[0] + branchStart[0],branchRoot[1] + branchStart[1],branchRoot[2] + branchStart[2])
                     RootToStart = ((newBranchStart[0] - newBranchRoot[0])*0.5,(newBranchStart[1] - newBranchRoot[1])*0.5,(newBranchStart[2] - newBranchRoot[2])*0.5)
                     fixedRoot = (newBranchRoot[0] + RootToStart[0],newBranchRoot[1] + RootToStart[1],newBranchRoot[2] + RootToStart[2])
-                    Generator.generateBranch(height-j,segments,streightness*((stemLength-j)*(1/stemLength)),stemRadius*(stemLength-j-1)/stemLength,stemRadiusChangeFactor, maxStemOutbreak, twigPercentage, depth-1, fixedRoot, RootToStart)
+                    Generator.generateBranch(height*(1-j/stemLength)*0.5,segments,streightness*((stemLength-j)*(1/stemLength)),branchPoint.radius*1.1,stemRadiusChangeFactor, maxStemOutbreak, twigPercentage, depth-1, fixedRoot, RootToStart)
 
     def mergePaths ():
         TPLLength = len(Generator.TreePartsList)
@@ -817,6 +840,8 @@ class TreeGenPanel(bpy.types.Panel):
         row.prop(context.scene, "radius", slider=True)
         row = layout.row()
         row.prop(context.scene, "branch_chance", slider=True)
+        row = layout.row()
+        row.prop(context.scene, "branch_change", slider=True)
         row = layout.row()
         row.prop(context.scene, "max_distance_from_middle", slider=True)
         row = layout.row()
