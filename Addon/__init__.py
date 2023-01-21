@@ -7,8 +7,8 @@ import json
 import base64
 
 bl_info = {
-    "name": "Fantasy Tree Generator",
-    "author": "Wir <wir@hs-furtwangen.de>",
+    "name": "Customized Tree Generator",
+    "author": "Fabian Mieg <fabian.alexander.mieg@hs-furtwangen.de>, Felix Poenitzsch <felix.poenitzsch@hs-furtwangen.de>",
     "version": (1, 1),
     "blender": (3, 3, 1),
     "location": "View3D > Sidepanel > TreeGen",
@@ -23,6 +23,7 @@ PROPS = [
     ('max_height', bpy.props.FloatProperty(name='Max Height',default=4.0,min=1.0, max=100.0, soft_max=20.0, soft_min=4.0, step=0.1 ,precision=3, unit='LENGTH')),
     ('path_length', bpy.props.FloatProperty(name='Path Lenght', default=1.0,min=0.1, max=100.0, soft_max=2.0, soft_min=0.01, step=0.01 ,precision=3 , unit='LENGTH')),
     ('radius', bpy.props.FloatProperty(name='Stem Radius',default=0.5,min=0.1, max=2.0, step=0.01 ,precision=3, unit='LENGTH')),
+    ('straightness', bpy.props.IntProperty(name='Straightness', subtype="PERCENTAGE",default = 10, min=0, max=100, step=1)),
     ('branch_chance', bpy.props.IntProperty(name='Branch Chance', subtype="PERCENTAGE",default = 10, min=0, max=100, step=1)),
     ('branch_change', bpy.props.FloatProperty(name='Branch Radius Change',default = 0.8, min=0, max=1, step=0.01)),
     ('max_distance_from_middle', bpy.props.IntProperty(name='Max Distance From Middle', default = 10, min = 1, max = 100, step=1)),
@@ -32,9 +33,10 @@ PROPS = [
     ('leaf_mat', bpy.props.PointerProperty(type=bpy.types.Material ,name='Leaf Material')),
     ('bark_mat', bpy.props.PointerProperty(type=bpy.types.Material ,name='Bark Material')),
     ('primary_seed', bpy.props.StringProperty(name='Primary Seed', default = "0")),
+    ('secondary_seed', bpy.props.StringProperty(name='Secondary Seed', default = "0")),
+    ('tertiary_seed', bpy.props.StringProperty(name='Tertiary Seed', default = "0")),
     ('bool_detail_bark', bpy.props.BoolProperty(name='Enable Bark Detail')),
     ('bool_detail_leaf', bpy.props.BoolProperty(name='Enable Leaf Detail')),
-    ('secondary_seed', bpy.props.StringProperty(name='Secondary Seed', default = "0")),
     ('material_list', bpy.props.PointerProperty(type=bpy.types.Material,name='Material')),
     ('texture_quality', bpy.props.FloatProperty(name='Texture Quality', default=1.0,min=0.1, max=15.0, soft_max=15.0, soft_min=0.01, step=0.01 ,precision=3)),
     ('exchange_string',bpy.props.StringProperty(name='Exchange String', ))
@@ -306,10 +308,13 @@ class GenExchangeString(bpy.types.Operator):
             "max_height": bpy.context.scene.max_height,
             "path_length": bpy.context.scene.path_length,
             "branch_chance": bpy.context.scene.branch_chance,
+            "branch_change": bpy.context.scene.branch_change,
+            "straightness": bpy.context.scene.straightness,
             "radius": bpy.context.scene.radius,
             "max_distance_from_middle": bpy.context.scene.max_distance_from_middle,
             "primary_seed": bpy.context.scene.primary_seed,
             "secondary_seed": bpy.context.scene.secondary_seed,
+            "tertiary_seed": bpy.context.scene.secondary_seed,
             "bool_detail_bark": bpy.context.scene.bool_detail_bark,
             "bool_detail_leaf": bpy.context.scene.bool_detail_leaf,
             "texture_quality": bpy.context.scene.texture_quality,
@@ -341,10 +346,13 @@ class UseExchangeString(bpy.types.Operator):
         bpy.context.scene.max_height = exchangeJson["max_height"]
         bpy.context.scene.path_length = exchangeJson["path_length"]
         bpy.context.scene.branch_chance = exchangeJson["branch_chance"]
+        bpy.context.scene.branch_change = exchangeJson["branch_change"]
+        bpy.context.scene.straightness = exchangeJson["straightness"]
         bpy.context.scene.radius = exchangeJson["radius"]
         bpy.context.scene.max_distance_from_middle = exchangeJson["max_distance_from_middle"]
         bpy.context.scene.primary_seed = exchangeJson["primary_seed"]
         bpy.context.scene.secondary_seed = exchangeJson["secondary_seed"]
+        bpy.context.scene.tertiary_seed = exchangeJson["tertiary_seed"]
         bpy.context.scene.bool_detail_bark = exchangeJson["bool_detail_bark"]
         bpy.context.scene.bool_detail_leaf = exchangeJson["bool_detail_leaf"]
         bpy.context.scene.texture_quality = exchangeJson["texture_quality"]
@@ -665,10 +673,9 @@ class PrimarySeedGenOperator(bpy.types.Operator):
     bl_label = "Generate Priamry Seed"
 
     @classmethod
-    def poll(cls, context): # was notwending ist für die aktivierung
-        return True# context.active_object is not None
+    def poll(cls, context):
+        return True
 
-# TODO: Add Generating Logic
     def execute(self, context):
         random.seed(datetime.now().timestamp())
         bpy.context.scene.primary_seed = str(random.randint(0,sys.maxsize))
@@ -679,39 +686,27 @@ class SecondarySeedGenOperator(bpy.types.Operator):
     bl_label = "Generate Secondary Seed"
 
     @classmethod
-    def poll(cls, context): # was notwending sit für di aktivierung
-        return True# context.active_object is not None
+    def poll(cls, context):
+        return True
 
-# TODO: Add Generating Logic
     def execute(self, context):
         random.seed(datetime.now().timestamp())
         bpy.context.scene.secondary_seed = str(random.randint(0,sys.maxsize))
-
-
-
-
         return {'FINISHED'}
 
+class TertiarySeedGenOperator(bpy.types.Operator):
+    bl_idname = "object.tertiaryseedgen"
+    bl_label = "Generate Tertiary Seed"
 
+    @classmethod
+    def poll(cls, context):
+        return True
 
-# 
-# class LeafMaterialOperator(bpy.types.Operator):
-#     bl_idname = "object.leafmaterialoperator"
-#     bl_label = "Generate Leaf Material"
+    def execute(self, context):
+        random.seed(datetime.now().timestamp())
+        bpy.context.scene.tertiary_seed = str(random.randint(0,sys.maxsize))
+        return {'FINISHED'}
 
-#     @classmethod
-#     def poll(cls, context): # was notwending sit für di aktivierung
-#         return True# context.active_object is not None
-
-
-#     def execute(self, context):
-#         return {'FINISHED'}
-
-#     def draw(self, context):
-#         layout = self.layout
-#         layout.prop(context.scene, "max_height", slider=True)
-#         layout.prop_search(self, "material_name", bpy.data, "materials")
-# 
 
 def make_empty(name, location, coll_name): #string, vector, string of existing coll
     empty_obj = bpy.data.objects.new( "empty", None, )
@@ -753,6 +748,7 @@ def ResetSeed():
 
 old_primary_seed: str = ""
 old_secondary_seed: str = ""
+old_tertiary_seed: str = ""
 
 def mainfunc():
     leaf_obj: bpy.types.Object = bpy.context.scene.leaf_object
@@ -761,6 +757,8 @@ def mainfunc():
     global random1
     global old_secondary_seed
     global random2
+    global old_tertiary_seed
+    global random3
     materialChanged = False
     barkChanged = False
     if leaf_obj is not None and leaf_mat is not None:
@@ -803,6 +801,13 @@ def mainfunc():
         random2 = np.random.RandomState(currSeed)
         print("Secondary Seed Changed")
 
+    if(old_tertiary_seed != bpy.context.scene.tertiary_seed):
+        old_tertiary_seed = bpy.context.scene.tertiary_seed
+        currSeed = StringSeedToNumber(bpy.context.scene.tertiary_seed)
+        random3 = np.random.RandomState(currSeed)
+        print("Tertiary Seed Changed")
+
+
     if(materialChanged):
         currSeed = StringSeedToNumber(bpy.context.scene.secondary_seed)
         random2 = np.random.RandomState(currSeed)
@@ -837,6 +842,8 @@ class TreeGenPanel(bpy.types.Panel):
         row.prop(context.scene, "path_length", slider=True)
         row = layout.row()
         row.prop(context.scene, "radius", slider=True)
+        row = layout.row()
+        row.prop(context.scene, "straightness", slider=True)
         row = layout.row()
         row.prop(context.scene, "branch_chance", slider=True)
         row = layout.row()
@@ -881,6 +888,10 @@ class TreeGenPanel(bpy.types.Panel):
         row.prop(context.scene, "secondary_seed")
         row = layout.row()
         row.operator("object.secondaryseedgen")
+        row = layout.row()
+        row.prop(context.scene, "tertiary_seed")
+        row = layout.row()
+        row.operator("object.tertiaryseedgen")
 
 
         layout.separator()
@@ -909,6 +920,7 @@ def register():
     bpy.utils.register_class(GenNewLeaf)
     bpy.utils.register_class(PrimarySeedGenOperator)
     bpy.utils.register_class(SecondarySeedGenOperator)
+    bpy.utils.register_class(TertiarySeedGenOperator)
     bpy.utils.register_class(TreeGenPanel)
     for (prop_name, prop_value) in PROPS:
         setattr(bpy.types.Scene, prop_name, prop_value)
@@ -925,6 +937,7 @@ def unregister():
     bpy.utils.unregister_class(GenNewLeaf)
     bpy.utils.unregister_class(PrimarySeedGenOperator)
     bpy.utils.unregister_class(SecondarySeedGenOperator)
+    bpy.utils.unregister_class(TertiarySeedGenOperator)
     bpy.utils.unregister_class(TreeGenPanel)
     for (prop_name, _) in PROPS:
         delattr(bpy.types.Scene, prop_name)
