@@ -24,7 +24,7 @@ PROPS = [
     ('radius', bpy.props.FloatProperty(name='Stem Radius',default=0.5,min=0.1, max=2.0, step=0.01 ,precision=3, unit='LENGTH')),
     ('straightness', bpy.props.IntProperty(name='Straightness', subtype="PERCENTAGE",default = 60, min=50, max=90, step=1)),
     ('branch_chance', bpy.props.IntProperty(name='Branch Spread', subtype="PERCENTAGE",default = 10, min=1, max=100, step=1)),
-    ('branch_change', bpy.props.FloatProperty(name='Branch Radius Change',default = 0.8, min=0, max=1, step=0.01)),
+    ('branch_change', bpy.props.FloatProperty(name='Branch Radius Change',default = 0.8, min=0, max=1, step=0.01, unit='LENGTH')),
     ('max_distance_from_middle', bpy.props.FloatProperty(name='Max Distance From Middle', default = 5, min = 0.5, max = 10, step=0.5)),
     ('texture_quality', bpy.props.FloatProperty(name='Texture Quality', default=1.0,min=0.1, max=15.0, soft_max=15.0, soft_min=0.01, step=0.01 ,precision=3)),
     ('leaf_object', bpy.props.PointerProperty(type=bpy.types.Object ,name='Leaf Object')),
@@ -761,7 +761,7 @@ def ResetSeed():
     currSeed = StringSeedToNumber(bpy.context.scene.secondary_seed)
     global random2
     random2 = np.random.RandomState(currSeed)
-    currSeed = StringSeedToNumber(bpy.context.scene.secondary_seed)
+    currSeed = StringSeedToNumber(bpy.context.scene.tertiary_seed)
     global random3
     random3 = np.random.RandomState(currSeed)
 
@@ -809,20 +809,20 @@ def mainfunc():
 
     if(old_primary_seed != bpy.context.scene.primary_seed):
         old_primary_seed = bpy.context.scene.primary_seed
-        currSeed = StringSeedToNumber(bpy.context.scene.primary_seed)
-        random1 = np.random.RandomState(currSeed)
+        currSeed1 = StringSeedToNumber(bpy.context.scene.primary_seed)
+        random1 = np.random.RandomState(currSeed1)
         print("Primary Seed Changed")
 
     if(old_secondary_seed != bpy.context.scene.secondary_seed):
         old_secondary_seed = bpy.context.scene.secondary_seed
-        currSeed = StringSeedToNumber(bpy.context.scene.secondary_seed)
-        random2 = np.random.RandomState(currSeed)
+        currSeed2 = StringSeedToNumber(bpy.context.scene.secondary_seed)
+        random2 = np.random.RandomState(currSeed2)
         print("Secondary Seed Changed")
 
     if(old_tertiary_seed != bpy.context.scene.tertiary_seed):
         old_tertiary_seed = bpy.context.scene.tertiary_seed
-        currSeed = StringSeedToNumber(bpy.context.scene.tertiary_seed)
-        random3 = np.random.RandomState(currSeed)
+        currSeed3 = StringSeedToNumber(bpy.context.scene.tertiary_seed)
+        random3 = np.random.RandomState(currSeed3)
         print("Tertiary Seed Changed")
 
 
