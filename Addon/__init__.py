@@ -233,9 +233,8 @@ class Generator():
                     ALen = math.sqrt(prevVector[0]*prevVector[0]+prevVector[1]*prevVector[1]+prevVector[2]*prevVector[2])
                     BLen = math.sqrt(newVector[0]*newVector[0]+newVector[1]*newVector[1]+newVector[2]*newVector[2])
                     cosy = scalar/(ALen*BLen)
-                    normCosY = math.sqrt(cosy*cosy)
                     print(cosy)
-                    if (normCosY<diversion):
+                    if (cosy<diversion):
                         return BranchInDirection(diversion)
                     else:
                         return newVector
