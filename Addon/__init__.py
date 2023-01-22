@@ -512,7 +512,7 @@ class GenNewBark(bpy.types.Operator):
         linear_light.inputs["Fac"].default_value = 0.08
         mix_rgb.inputs["Color2"].default_value = (0.0561284, 0.14996, 0.0241577, 1)
         displacement.inputs["Scale"].default_value = 0.140
-        material_shader.inputs["Specular"].default_value = 0.1
+        material_shader.inputs["Specular"].default_value = 0.5
 
 
 
@@ -762,10 +762,8 @@ def GetRand(seedtype: int):
     
 def StringSeedToNumber(_str: str):
     num: int = 0
-
     for i in range(len(_str)):
         num += ord(_str[i])       
-
     return num
 
 def ResetSeed():
@@ -775,6 +773,10 @@ def ResetSeed():
     currSeed = StringSeedToNumber(bpy.context.scene.secondary_seed)
     global random2
     random2 = np.random.RandomState(currSeed)
+    currSeed = StringSeedToNumber(bpy.context.scene.secondary_seed)
+    global random3
+    random3 = np.random.RandomState(currSeed)
+
 
 
 old_primary_seed: str = ""
