@@ -217,7 +217,7 @@ class Generator():
             newPath = (0,0,0)
             s = bpy.context.scene
             if (splinePoint>2):
-                def BranchInDirection(diversion):
+                def BranchInDirection(diversion, o):
                     newX = GetRand(1)*streightness*2-streightness
                     newY = GetRand(1)*streightness*2-streightness
                     addHeight = heightRangeMin+GetRand(1)*(heightRangeMax-heightRangeMin)
@@ -226,16 +226,18 @@ class Generator():
                     point = spline.points[splinePoint].co
                     prevPoint = spline.points[splinePoint-1].co
                     prevVector = (point[0]-prevPoint[0],point[1]-prevPoint[1],point[2]-prevPoint[2])
+                    if (o>20):
+                        return prevVector
                     scalar = prevVector[0]*newVector[0]+prevVector[1]*newVector[1]+prevVector[2]*newVector[2]
                     ALen = math.sqrt(prevVector[0]*prevVector[0]+prevVector[1]*prevVector[1]+prevVector[2]*prevVector[2])
                     BLen = math.sqrt(newVector[0]*newVector[0]+newVector[1]*newVector[1]+newVector[2]*newVector[2])
                     cosy = scalar/(ALen*BLen)
                     print(cosy)
                     if (cosy<diversion):
-                        return BranchInDirection(diversion)
+                        return BranchInDirection(diversion, o+1)
                     else:
                         return newVector
-                newPath = BranchInDirection(s.straightness/100)
+                newPath = BranchInDirection(s.straightness/100,0)
                 actHeight += newPath[2]
             else:
                 addHeight = heightRangeMin+GetRand(1)*(heightRangeMax-heightRangeMin)
