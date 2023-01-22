@@ -23,9 +23,9 @@ PROPS = [
     ('path_length', bpy.props.FloatProperty(name='Path Lenght', default=1.0,min=0.1, max=100.0, soft_max=2.0, soft_min=0.01, step=0.01 ,precision=3 , unit='LENGTH')),
     ('radius', bpy.props.FloatProperty(name='Stem Radius',default=0.5,min=0.1, max=2.0, step=0.01 ,precision=3, unit='LENGTH')),
     ('straightness', bpy.props.IntProperty(name='Straightness', subtype="PERCENTAGE",default = 60, min=50, max=90, step=1)),
-    ('branch_chance', bpy.props.IntProperty(name='Branch Chance', subtype="PERCENTAGE",default = 10, min=0, max=100, step=1)),
+    ('branch_chance', bpy.props.IntProperty(name='Branch Spread', subtype="PERCENTAGE",default = 10, min=1, max=100, step=1)),
     ('branch_change', bpy.props.FloatProperty(name='Branch Radius Change',default = 0.8, min=0, max=1, step=0.01)),
-    ('max_distance_from_middle', bpy.props.FloatProperty(name='Max Distance From Middle', default = 5, min = 1, max = 10, step=0.5)),
+    ('max_distance_from_middle', bpy.props.FloatProperty(name='Max Distance From Middle', default = 5, min = 0.5, max = 10, step=0.5)),
     ('texture_quality', bpy.props.FloatProperty(name='Texture Quality', default=1.0,min=0.1, max=15.0, soft_max=15.0, soft_min=0.01, step=0.01 ,precision=3)),
     ('leaf_object', bpy.props.PointerProperty(type=bpy.types.Object ,name='Leaf Object')),
     ('bark_object', bpy.props.PointerProperty(type=bpy.types.Object ,name='Bark Object')),
@@ -55,7 +55,7 @@ class TestOperator(bpy.types.Operator):
         if(s.base_object == None):
             s.base_object = make_empty("Generated Tree Base", bpy.context.scene.cursor.location,0)
         Generator.generateForm()
-        Generator.generateStem(s.max_height,(s.max_height/s.path_length), s.path_length,s.radius ,0.2,s.branch_change,s.branch_chance/10,s.max_distance_from_middle,(0,0,0))
+        Generator.generateStem(s.max_height,(s.max_height/s.path_length), s.path_length,s.radius ,0.2,s.branch_change,s.branch_chance,s.max_distance_from_middle,(0,0,0))
         Generator.mergePaths()
         Generator.generateLeavesBall()
         return {'FINISHED'}
@@ -180,14 +180,14 @@ class Generator():
         j = 1
         while (j<stemLength-2):
             j = j+1
-            if ((GetRand(1)*(10-j))<(twigPercentage*10)):
+            if ((GetRand(1)*(10-j))<(0.4*10)):
                 branchPoint = stem.points[j]
                 branchStart = (StartingPoint[0] + branchPoint.co[0], StartingPoint[1] + branchPoint.co[1], StartingPoint[2] + branchPoint.co[2])
                 branchRootPoint = stem.points[j-1]
                 branchRoot = (StartingPoint[0] + branchRootPoint.co[0], StartingPoint[1] + branchRootPoint.co[1], StartingPoint[2] + branchRootPoint.co[2])
                 RootToStart = ((branchStart[0] - branchRoot[0])*0.5,(branchStart[1] - branchRoot[1])*0.5,(branchStart[2] - branchRoot[2])*0.5)
                 fixedRoot = (branchRoot[0] + RootToStart[0],branchRoot[1] + RootToStart[1],branchRoot[2] + RootToStart[2])
-                Generator.generateBranch(height-j,segments-j,maxStemOutbreak/2,branchRootPoint.radius*BranchRadiusFactor,stemRadiusChangeFactor, maxStemOutbreak, twigPercentage, 1, fixedRoot, RootToStart)
+                Generator.generateBranch(height-j,segments-j,twigPercentage/10,branchRootPoint.radius*BranchRadiusFactor,stemRadiusChangeFactor, maxStemOutbreak, twigPercentage, 1, fixedRoot, RootToStart)
         TPLLength = len(Generator.TreePartsList)
         print (TPLLength)
 
@@ -272,7 +272,7 @@ class Generator():
             j = 1
             while (j<stemLength-2):
                 j = j+1
-                if ((GetRand(1)*(10-j))<(twigPercentage*10)):
+                if ((GetRand(1)*(segments-j))<(0.4*segments)):
                     branchPoint = stem.points[j]
                     branchStart = (branchPoint.co[0], branchPoint.co[1], branchPoint.co[2])
                     branchRootPoint = stem.points[j-1]
