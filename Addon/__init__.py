@@ -18,8 +18,6 @@ bl_info = {
     "support": "TESTING",
 }
 
-
-
 PROPS = [
     ('max_height', bpy.props.FloatProperty(name='Max Height',default=4.0,min=1.0, max=100.0, soft_max=20.0, soft_min=4.0, step=0.1 ,precision=3, unit='LENGTH')),
     ('path_length', bpy.props.FloatProperty(name='Path Lenght', default=1.0,min=0.1, max=100.0, soft_max=2.0, soft_min=0.01, step=0.01 ,precision=3 , unit='LENGTH')),
@@ -28,6 +26,7 @@ PROPS = [
     ('branch_chance', bpy.props.IntProperty(name='Branch Chance', subtype="PERCENTAGE",default = 10, min=0, max=100, step=1)),
     ('branch_change', bpy.props.FloatProperty(name='Branch Radius Change',default = 0.8, min=0, max=1, step=0.01)),
     ('max_distance_from_middle', bpy.props.FloatProperty(name='Max Distance From Middle', default = 5, min = 1, max = 10, step=0.5)),
+    ('texture_quality', bpy.props.FloatProperty(name='Texture Quality', default=1.0,min=0.1, max=15.0, soft_max=15.0, soft_min=0.01, step=0.01 ,precision=3)),
     ('leaf_object', bpy.props.PointerProperty(type=bpy.types.Object ,name='Leaf Object')),
     ('bark_object', bpy.props.PointerProperty(type=bpy.types.Object ,name='Bark Object')),
     ('base_object', bpy.props.PointerProperty(type=bpy.types.Object ,name='Base Object')),
@@ -38,8 +37,6 @@ PROPS = [
     ('tertiary_seed', bpy.props.StringProperty(name='Tertiary Seed', default = "0")),
     ('bool_detail_bark', bpy.props.BoolProperty(name='Enable Bark Detail')),
     ('bool_detail_leaf', bpy.props.BoolProperty(name='Enable Leaf Detail')),
-    ('material_list', bpy.props.PointerProperty(type=bpy.types.Material,name='Material')),
-    ('texture_quality', bpy.props.FloatProperty(name='Texture Quality', default=1.0,min=0.1, max=15.0, soft_max=15.0, soft_min=0.01, step=0.01 ,precision=3)),
     ('exchange_string',bpy.props.StringProperty(name='Exchange String', ))
 ]
 
@@ -353,9 +350,6 @@ class GenExchangeString(bpy.types.Operator):
         b64_exchange_string = base64.b64encode(jsonstring.encode('utf-8'))
         bpy.context.scene.exchange_string = b64_exchange_string.decode('utf-8')
         print(b64_exchange_string)
-        
-        
-
         return {'FINISHED'}
 
 class UseExchangeString(bpy.types.Operator):
@@ -368,7 +362,6 @@ class UseExchangeString(bpy.types.Operator):
 
     def execute(self, context):
         print("Start Testing")
-
 
         b64_exchange_string = bpy.context.scene.exchange_string
         jsonString = base64.b64decode(b64_exchange_string).decode('utf-8')
@@ -403,6 +396,8 @@ class GenNewBark(bpy.types.Operator):
         material =bpy.data.materials.new(name="bark_material")
         bpy.context.scene.bark_mat = material
         material.use_nodes = True
+
+    # Node Creation
         material_output: bpy.types.ShaderNodeOutputMaterial = material.node_tree.nodes.get('Material Output')
         material_shader: bpy.types.ShaderNodeBsdfPrincipled = material.node_tree.nodes.get('Principled BSDF')
         texture_coor: bpy.types.ShaderNodeTexCoord = material.node_tree.nodes.new("ShaderNodeTexCoord")
@@ -423,7 +418,7 @@ class GenNewBark(bpy.types.Operator):
         voronoi_tex: bpy.types.ShaderNodeTexVoronoi = material.node_tree.nodes.new("ShaderNodeTexVoronoi")
         displacement: bpy.types.ShaderNodeDisplacement = material.node_tree.nodes.new("ShaderNodeDisplacement")
        
-        # Node Position
+    # Node Position
         material_output.location = (2600,1000)
         material_shader.location = (2300,800)
         texture_coor.location = (0,1000)
@@ -444,32 +439,32 @@ class GenNewBark(bpy.types.Operator):
         voronoi_tex.location = (1500,500)
         displacement.location = (1700,1000)
 
-        # Node Settings
-            # Noise-Texture
-        noise_tex_1.inputs["Scale"].default_value = 2.1
+    # Node Settings
+        # Noise-Texture
+        noise_tex_1.inputs["Scale"].default_value = 1 + GetRand(1)*2
         noise_tex_1.inputs["Detail"].default_value = bpy.context.scene.texture_quality
         noise_tex_1.inputs["Roughness"].default_value = 0.65
         noise_tex_1.inputs["Distortion"].default_value = 0.3
         
-        noise_tex_2.inputs["Scale"].default_value = 3.0
+        noise_tex_2.inputs["Scale"].default_value = 2 + GetRand(1)*2
         noise_tex_2.inputs["Detail"].default_value = bpy.context.scene.texture_quality
         noise_tex_2.inputs["Roughness"].default_value = 0.5
         noise_tex_2.inputs["Distortion"].default_value = 0.0
 
-        noise_tex_3.inputs["Scale"].default_value = 8.0
+        noise_tex_3.inputs["Scale"].default_value = 7 + GetRand(1)*2
         noise_tex_3.inputs["Detail"].default_value = bpy.context.scene.texture_quality
         noise_tex_3.inputs["Distortion"].default_value = 0.0
 
-        noise_tex_4.inputs["Scale"].default_value = 4.0
+        noise_tex_4.inputs["Scale"].default_value = 3 + GetRand(1)*2
         noise_tex_4.inputs["Detail"].default_value = bpy.context.scene.texture_quality
         noise_tex_4.inputs["Roughness"].default_value = 0.60
         noise_tex_4.inputs["Distortion"].default_value = 0.0
         
-            # Voronoi-Texture
+        # Voronoi-Texture
         voronoi_tex.inputs["Scale"].default_value = 8.0
         voronoi_tex.inputs["Randomness"].default_value = 1.0
 
-            # Color-Ramp
+        # Color-Ramp
         color_ramp_1.color_ramp.elements[0].position = 0.53
         color_ramp_1.color_ramp.elements[0].color = (0,0,0,1)
         color_ramp_1.color_ramp.elements[1].position = 0.71
@@ -493,75 +488,68 @@ class GenNewBark(bpy.types.Operator):
         color_ramp_4.color_ramp.elements[1].position = 0.0
         color_ramp_4.color_ramp.elements[1].color = (0.847,0.847,0.847,1)
 
-
-            # Bump
+        # Bump
         bump_1.inputs["Strength"].default_value = 0.35
         bump_2.inputs["Strength"].default_value = 0.4
         bump_3.inputs["Strength"].default_value = 1.0
 
-
-            # Mapping
+        # Mapping
         mapping.inputs["Scale"].default_value[2] = 0.3
         mapping.inputs["Location"].default_value[0] = 5*GetRand(2)
         mapping.inputs["Location"].default_value[1] = 5*GetRand(2)
         mapping.inputs["Location"].default_value[2] = 5*GetRand(2)
 
-            #Rest  (Mapping, Displacement, MixRGB, Linear-Light)
+        #Rest  (Mapping, Displacement, MixRGB, Linear-Light)
         linear_light.blend_type = "LINEAR_LIGHT"
         linear_light.inputs["Fac"].default_value = 0.08
         mix_rgb.inputs["Color2"].default_value = (0.0561284, 0.14996, 0.0241577, 1)
         displacement.inputs["Scale"].default_value = 0.140
-        material_shader.inputs["Specular"].default_value = 0.1
+        material_shader.inputs["Specular"].default_value = 0.5
 
 
-
-
-        # Node Linking
-            # Texture Coordinate
+    # Node Linking
+        # Texture Coordinate
         material.node_tree.links.new(noise_tex_1.inputs[0], texture_coor.outputs[3])
         material.node_tree.links.new(noise_tex_2.inputs[0], texture_coor.outputs[3])
         material.node_tree.links.new(noise_tex_3.inputs[0], texture_coor.outputs[3])
         material.node_tree.links.new(noise_tex_4.inputs[0], texture_coor.outputs[3])
         material.node_tree.links.new(linear_light.inputs[1], texture_coor.outputs[3])
             
-            # Noise Texture
+        # Noise Texture
         material.node_tree.links.new(color_ramp_1.inputs[0], noise_tex_1.outputs[1])
         material.node_tree.links.new(color_ramp_2.inputs[0], noise_tex_2.outputs[1])
         material.node_tree.links.new(linear_light.inputs[2], noise_tex_3.outputs[1])
         material.node_tree.links.new(bump_2.inputs[2], noise_tex_4.outputs[0])
             
-            # Voronoi texture
+        # Voronoi texture
         material.node_tree.links.new(color_ramp_3.inputs[0], voronoi_tex.outputs[0])
         material.node_tree.links.new(color_ramp_4.inputs[0], voronoi_tex.outputs[0])
         material.node_tree.links.new(displacement.inputs[0], voronoi_tex.outputs[0])
         material.node_tree.links.new(bump_1.inputs[2], voronoi_tex.outputs[0])
 
-            # Color Ramp
+        # Color Ramp
         material.node_tree.links.new(mix_rgb.inputs[0], color_ramp_1.outputs[0])
         material.node_tree.links.new(bump_3.inputs[2], color_ramp_1.outputs[0])
         material.node_tree.links.new(noise_tex_3.inputs[4], color_ramp_2.outputs[0])  
         material.node_tree.links.new(mix_rgb.inputs[1], color_ramp_3.outputs[0])
         material.node_tree.links.new(material_shader.inputs[9], color_ramp_4.outputs[0])
 
-            # Bump
+        # Bump
         material.node_tree.links.new(bump_2.inputs[3], bump_1.outputs[0])
         material.node_tree.links.new(bump_3.inputs[3], bump_2.outputs[0])
         if(bpy.context.scene.bool_detail_bark):
             material.node_tree.links.new(material_shader.inputs[22], bump_3.outputs[0])
         
 
-            # MixRGB+Linear-Light
+        # MixRGB+Linear-Light
         material.node_tree.links.new(material_shader.inputs[0], mix_rgb.outputs[0])
         material.node_tree.links.new(mapping.inputs[0], linear_light.outputs[0])
 
-            # Rest (Mapping, Shader, Displacement)
+        # Rest (Mapping, Shader, Displacement)
         material.node_tree.links.new(voronoi_tex.inputs[0], mapping.outputs[0])       
         material.node_tree.links.new(material_output.inputs[0], material_shader.outputs[0])
         if(bpy.context.scene.bool_detail_bark):
             material.node_tree.links.new(material_output.inputs[2], displacement.outputs[0])
-
-
-
 
         return {'FINISHED'}
 
@@ -574,12 +562,13 @@ class GenNewLeaf(bpy.types.Operator):
         return True# context.active_object is not None
 
     def execute(self, context):
-# TODO: Generate the Bark and select it
         if(bpy.data.materials.find("leaf_material") != -1):
             bpy.data.materials.remove(bpy.data.materials["leaf_material"])
         material = bpy.data.materials.new(name="leaf_material")
         bpy.context.scene.leaf_mat = material
         material.use_nodes = True
+
+    # Node Creation
         material_output: bpy.types.ShaderNodeOutputMaterial = material.node_tree.nodes.get('Material Output')
         material_shader: bpy.types.ShaderNodeBsdfPrincipled = material.node_tree.nodes.get('Principled BSDF')
         texture_coor: bpy.types.ShaderNodeTexCoord = material.node_tree.nodes.new("ShaderNodeTexCoord")
@@ -595,7 +584,7 @@ class GenNewLeaf(bpy.types.Operator):
         voronoi_tex: bpy.types.ShaderNodeTexVoronoi = material.node_tree.nodes.new("ShaderNodeTexVoronoi")
         displacement: bpy.types.ShaderNodeDisplacement = material.node_tree.nodes.new("ShaderNodeDisplacement")
         
-        # Node Position
+    # Node Position
         material_output.location = (2600,1000)
         material_shader.location = (2300,800)
         texture_coor.location = (0,1000)
@@ -611,8 +600,8 @@ class GenNewLeaf(bpy.types.Operator):
         voronoi_tex.location = (1500,500)
         displacement.location = (1700,1000)
 
-        # Node Settings
-            # Noise-Texture
+    # Node Settings
+        # Noise-Texture
         noise_tex_1.inputs["Scale"].default_value = 5.0
         noise_tex_1.inputs["Detail"].default_value = bpy.context.scene.texture_quality
         noise_tex_1.inputs["Roughness"].default_value = 0.4
@@ -623,12 +612,11 @@ class GenNewLeaf(bpy.types.Operator):
         noise_tex_2.inputs["Roughness"].default_value = 0.5
         noise_tex_2.inputs["Distortion"].default_value = 0.0
 
-
-            # Voronoi-Texture
+        # Voronoi-Texture
         voronoi_tex.inputs["Scale"].default_value = 1.5
         voronoi_tex.inputs["Randomness"].default_value = 1.0
 
-            # Color-Ramp
+        # Color-Ramp
         color_ramp_1.color_ramp.elements[0].position = 0.495
         color_ramp_1.color_ramp.elements[0].color = (0.021,0.037,0.009,1)
         color_ramp_1.color_ramp.elements[1].position = 0.955
@@ -639,64 +627,63 @@ class GenNewLeaf(bpy.types.Operator):
         color_ramp_2.color_ramp.elements[1].position = 0.0
         color_ramp_2.color_ramp.elements[1].color = (0.847,0.847,0.847,1)
 
-
-            # Bump
+        # Bump
         bump_1.inputs["Strength"].default_value = 0.35
         bump_2.inputs["Strength"].default_value = 0.5
         bump_3.inputs["Strength"].default_value = 1.0
 
 
-            # Mapping
+        # Mapping
         mapping.inputs["Scale"].default_value[2] = 0.5
         mapping.inputs["Location"].default_value[0] = 5*GetRand(2)
         mapping.inputs["Location"].default_value[1] = 5*GetRand(2)
         mapping.inputs["Location"].default_value[2] = 5*GetRand(2)
 
-            #Rest  (Mapping, Displacement, MixRGB, Linear-Light)
+        #Rest  (Mapping, Displacement, MixRGB, Linear-Light)
         linear_light.blend_type = "LINEAR_LIGHT"
         linear_light.inputs["Fac"].default_value = 0.4
         displacement.inputs["Scale"].default_value = 0.140
         material_shader.inputs["Specular"].default_value = 0.0
 
-
-        # Node Linking
-            # Texture Coordinate
+    # Node Linking
+        # Texture Coordinate
         material.node_tree.links.new(noise_tex_1.inputs[0], texture_coor.outputs[3])
         material.node_tree.links.new(noise_tex_2.inputs[0], texture_coor.outputs[3])
         material.node_tree.links.new(linear_light.inputs[1], texture_coor.outputs[3])
             
-            # Noise Texture
+        # Noise Texture
         material.node_tree.links.new(linear_light.inputs[2], noise_tex_1.outputs[1])
         material.node_tree.links.new(bump_2.inputs[2], noise_tex_2.outputs[0])
             
-            # Voronoi texture
+        # Voronoi texture
         material.node_tree.links.new(color_ramp_1.inputs[0], voronoi_tex.outputs[1])
         material.node_tree.links.new(color_ramp_2.inputs[0], voronoi_tex.outputs[0])
         material.node_tree.links.new(displacement.inputs[0], voronoi_tex.outputs[0])
         material.node_tree.links.new(bump_1.inputs[2], voronoi_tex.outputs[0])
         material.node_tree.links.new(bump_3.inputs[2], voronoi_tex.outputs[1])
 
-            # Color Ramp
+        # Color Ramp
         material.node_tree.links.new(material_shader.inputs[0], color_ramp_1.outputs[0])
         material.node_tree.links.new(material_shader.inputs[9], color_ramp_2.outputs[0])
 
-            # Bump
+        # Bump
         material.node_tree.links.new(bump_2.inputs[3], bump_1.outputs[0])
         material.node_tree.links.new(bump_3.inputs[3], bump_2.outputs[0])
         if(bpy.context.scene.bool_detail_leaf):
             material.node_tree.links.new(material_shader.inputs[22], bump_3.outputs[0])
         
 
-            # MixRGB+Linear-Light
+        # MixRGB+Linear-Light
         material.node_tree.links.new(mapping.inputs[0], linear_light.outputs[0])
 
-            # Rest (Mapping, Shader, Displacement)
+        # Rest (Mapping, Shader, Displacement)
         material.node_tree.links.new(voronoi_tex.inputs[0], mapping.outputs[0])       
         material.node_tree.links.new(material_output.inputs[0], material_shader.outputs[0])
         if(bpy.context.scene.bool_detail_leaf):
             material.node_tree.links.new(material_output.inputs[2], displacement.outputs[0])
 
         return {'FINISHED'}
+
 
 class PrimarySeedGenOperator(bpy.types.Operator):
     bl_idname = "object.primaryseedgen"
@@ -761,10 +748,8 @@ def GetRand(seedtype: int):
     
 def StringSeedToNumber(_str: str):
     num: int = 0
-
     for i in range(len(_str)):
         num += ord(_str[i])       
-
     return num
 
 def ResetSeed():
@@ -774,6 +759,9 @@ def ResetSeed():
     currSeed = StringSeedToNumber(bpy.context.scene.secondary_seed)
     global random2
     random2 = np.random.RandomState(currSeed)
+    currSeed = StringSeedToNumber(bpy.context.scene.secondary_seed)
+    global random3
+    random3 = np.random.RandomState(currSeed)
 
 
 old_primary_seed: str = ""
@@ -816,8 +804,6 @@ def mainfunc():
             materialChanged = True
             print("Bark changed")
    
-   
-   
 
     if(old_primary_seed != bpy.context.scene.primary_seed):
         old_primary_seed = bpy.context.scene.primary_seed
@@ -846,22 +832,15 @@ def mainfunc():
         currSeed = StringSeedToNumber(bpy.context.scene.primary_seed)
         random1 = np.random.RandomState(currSeed)
 
-
-
-
 class TreeGenPanel(bpy.types.Panel):
-    """Creates a Panel in the Object properties window"""
     bl_label = "Tree Generator"
     bl_idname = "VIEW3D_Tree_Gen"
     bl_space_type = 'VIEW_3D'
     bl_region_type = 'UI'
     bl_category = "TreeGen"
-    #bl_context = "object"
 
     def draw(self, context):
         layout = self.layout
-
-        obj = context.object
 
         mainfunc()
         row = layout.row()
@@ -954,10 +933,6 @@ def register():
     bpy.utils.register_class(TreeGenPanel)
     for (prop_name, prop_value) in PROPS:
         setattr(bpy.types.Scene, prop_name, prop_value)
-    
-    
-    
-
 
 def unregister():
     bpy.utils.unregister_class(TestOperator)
@@ -971,7 +946,6 @@ def unregister():
     bpy.utils.unregister_class(TreeGenPanel)
     for (prop_name, _) in PROPS:
         delattr(bpy.types.Scene, prop_name)
-
 
 if __name__ == "__main__":
     register()
