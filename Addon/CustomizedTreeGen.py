@@ -37,12 +37,19 @@ PROPS = [
     ('tertiary_seed', bpy.props.StringProperty(name='Tertiary Seed', default = "0")),
     ('bool_detail_bark', bpy.props.BoolProperty(name='Enable Bark Detail')),
     ('bool_detail_leaf', bpy.props.BoolProperty(name='Enable Leaf Detail')),
-    ('exchange_string',bpy.props.StringProperty(name='Exchange String', ))
+    ('exchange_string',bpy.props.StringProperty(name='Exchange String', )),
+    ('color_picker_1',bpy.props.FloatVectorProperty(name="Bark Left Color", subtype="COLOR", min = 0.0, max = 1.0, default=(0.305,0.184,0.1,1), size=4)),
+    ('color_picker_2',bpy.props.FloatVectorProperty(name="Bark Middle Color", subtype="COLOR", min = 0.0, max = 1.0, default=(0.1,0.05,0.022,1), size=4)),
+    ('color_picker_3',bpy.props.FloatVectorProperty(name="Bark Right Color", subtype="COLOR", min = 0.0, max = 1.0, default=(0.004,0.003,0.002,1), size=4)),
+    ('color_picker_4',bpy.props.FloatVectorProperty(name="Bark Moss Color", subtype="COLOR", min = 0.0, max = 1.0, default=(0.0561284, 0.14996, 0.0241577, 1), size=4)),
+    ('color_picker_5',bpy.props.FloatVectorProperty(name="Leaf Left Color", subtype="COLOR", min = 0.0, max = 1.0, default=(0.021,0.037,0.009,1), size=4)),
+    ('color_picker_6',bpy.props.FloatVectorProperty(name="Leaf Right Color", subtype="COLOR", min = 0.0, max = 1.0, default=(0.117,0.150,0.040,1), size=4))
+    
 ]
 
-class TestOperator(bpy.types.Operator):
-    bl_idname = "object.testoperator"
-    bl_label = "Simple Test Operator "
+class GenTreeOperator(bpy.types.Operator):
+    bl_idname = "object.gentreeoperator"
+    bl_label = "Generating Tree Operator"
 
     @classmethod
     def poll(cls, context): # was notwending ist für die aktivierung
@@ -478,12 +485,12 @@ class GenNewBark(bpy.types.Operator):
         color_ramp_2.color_ramp.elements[1].color = (0.617,0.617,0.617,1)
 
         color_ramp_3.color_ramp.elements[0].position = 0.0
-        color_ramp_3.color_ramp.elements[0].color = (0.305,0.184,0.1,1)
+        color_ramp_3.color_ramp.elements[0].color = bpy.context.scene.color_picker_1
         color_ramp_3.color_ramp.elements[1].position = 0.264
-        color_ramp_3.color_ramp.elements[1].color = (0.1,0.05,0.022,1)
+        color_ramp_3.color_ramp.elements[1].color = bpy.context.scene.color_picker_2
         color_ramp_3.color_ramp.elements.new(2)
         color_ramp_3.color_ramp.elements[2].position = 0.891
-        color_ramp_3.color_ramp.elements[2].color = (0.004,0.003,0.002,1)
+        color_ramp_3.color_ramp.elements[2].color = bpy.context.scene.color_picker_3
 
         color_ramp_4.color_ramp.elements[0].position = 0.0
         color_ramp_4.color_ramp.elements[0].color = (0.451,0.451,0.451,1)
@@ -504,7 +511,7 @@ class GenNewBark(bpy.types.Operator):
         #Rest  (Mapping, Displacement, MixRGB, Linear-Light)
         linear_light.blend_type = "LINEAR_LIGHT"
         linear_light.inputs["Fac"].default_value = 0.08
-        mix_rgb.inputs["Color2"].default_value = (0.0561284, 0.14996, 0.0241577, 1)
+        mix_rgb.inputs["Color2"].default_value = bpy.context.scene.color_picker_4
         displacement.inputs["Scale"].default_value = 0.140
         material_shader.inputs["Specular"].default_value = 0.5
 
@@ -620,9 +627,9 @@ class GenNewLeaf(bpy.types.Operator):
 
         # Color-Ramp
         color_ramp_1.color_ramp.elements[0].position = 0.495
-        color_ramp_1.color_ramp.elements[0].color = (0.021,0.037,0.009,1)
+        color_ramp_1.color_ramp.elements[0].color = bpy.context.scene.color_picker_5
         color_ramp_1.color_ramp.elements[1].position = 0.955
-        color_ramp_1.color_ramp.elements[1].color = (0.117,0.150,0.040,1)
+        color_ramp_1.color_ramp.elements[1].color = bpy.context.scene.color_picker_6
 
         color_ramp_2.color_ramp.elements[0].position = 0.0
         color_ramp_2.color_ramp.elements[0].color = (0.451,0.451,0.451,1)
@@ -834,19 +841,37 @@ def mainfunc():
         currSeed = StringSeedToNumber(bpy.context.scene.primary_seed)
         random1 = np.random.RandomState(currSeed)
 
-class TreeGenPanel(bpy.types.Panel):
-    bl_label = "Tree Generator"
-    bl_idname = "VIEW3D_Tree_Gen"
-    bl_space_type = 'VIEW_3D'
-    bl_region_type = 'UI'
+class TreeGenColorPanel(bpy.types.Panel):
+    bl_label = "Color Picker"
     bl_category = "TreeGen"
+    bl_space_type = "VIEW_3D"
+    bl_region_type = "UI"
+    bl_options = {"DEFAULT_CLOSED"}
 
     def draw(self, context):
         layout = self.layout
-
-        mainfunc()
         row = layout.row()
-        row.label(text="Tree Properties")
+        row.prop(context.scene, "color_picker_1")
+        row = layout.row()
+        row.prop(context.scene, "color_picker_2")
+        row = layout.row()
+        row.prop(context.scene, "color_picker_3")
+        row = layout.row()
+        row.prop(context.scene, "color_picker_4")
+        row = layout.row()
+        row.prop(context.scene, "color_picker_5")
+        row = layout.row()
+        row.prop(context.scene, "color_picker_6")
+
+class TreeGenSettingsPanel(bpy.types.Panel):
+    bl_label = "Tree Settings"
+    bl_category = "TreeGen"
+    bl_space_type = "VIEW_3D"
+    bl_region_type = "UI"
+    bl_options = {"DEFAULT_CLOSED"}
+
+    def draw(self, context):
+        layout = self.layout
         row = layout.row()
         row.prop(context.scene, "max_height", slider=True)
         row = layout.row()
@@ -863,32 +888,20 @@ class TreeGenPanel(bpy.types.Panel):
         row.prop(context.scene, "max_distance_from_middle", slider=True)
         row = layout.row()
         row.prop(context.scene, "texture_quality", slider=True)
-
-        layout.separator()
-        row = layout.row()
-        row.label(text="Bark Generation:")
-        row = layout.row()
-        row.prop(context.scene, "bark_object")
-        row = layout.row()
-        row.prop(context.scene, "bark_mat")
         row = layout.row()
         row.prop(context.scene, "bool_detail_bark")
         row = layout.row()
-        row.operator("object.gennewbark")
-
-        layout.separator()
-        row = layout.row()
-        row.label(text="Leaf Generation:")
-        row = layout.row()
-        row.prop(context.scene, "leaf_object")
-        row = layout.row()
-        row.prop(context.scene, "leaf_mat")
-        row = layout.row()
         row.prop(context.scene, "bool_detail_leaf")
-        row = layout.row()
-        row.operator("object.gennewleaf")
 
-        layout.separator()
+class TreeGenSeedPanel(bpy.types.Panel):
+    bl_label = "Seed Panel"
+    bl_category = "TreeGen"
+    bl_space_type = "VIEW_3D"
+    bl_region_type = "UI"
+    bl_options = {"DEFAULT_CLOSED"}
+
+    def draw(self, context):
+        layout = self.layout
         row = layout.row()
         row.label(text="Seed Generation:")
         row = layout.row()
@@ -905,13 +918,44 @@ class TreeGenPanel(bpy.types.Panel):
         row.operator("object.tertiaryseedgen")
 
 
+class TreeGenPanel(bpy.types.Panel):
+    bl_label = "Main Panel"
+    bl_idname = "VIEW3D_Tree_Gen"
+    bl_space_type = 'VIEW_3D'
+    bl_region_type = 'UI'
+    bl_category = "TreeGen"
+
+    def draw(self, context):
+        layout = self.layout
+
+        mainfunc()
+
+        row = layout.row()
+        row.label(text="Bark Generation:")
+        row = layout.row()
+        row.prop(context.scene, "bark_object")
+        row = layout.row()
+        row.prop(context.scene, "bark_mat")
+        row = layout.row()
+        row.operator("object.gennewbark")
+
+        layout.separator()
+        row = layout.row()
+        row.label(text="Leaf Generation:")
+        row = layout.row()
+        row.prop(context.scene, "leaf_object")
+        row = layout.row()
+        row.prop(context.scene, "leaf_mat")
+        row = layout.row()
+        row.operator("object.gennewleaf")
+
         layout.separator()
         row = layout.row()
         row.label(text="Generation Option:")
         row = layout.row()
         row.prop(context.scene, "base_object")
         row = layout.row()
-        row.operator("object.testoperator", text="Generate Tree")
+        row.operator("object.gentreeoperator", text="Generate Tree")
 
         layout.separator()
         row = layout.row()
@@ -923,29 +967,18 @@ class TreeGenPanel(bpy.types.Panel):
         row = layout.row()
         row.operator("object.useexchangestring", text="Use Exchange String")
 
+
+classes = (GenTreeOperator, GenExchangeString, UseExchangeString, GenNewBark, GenNewLeaf, PrimarySeedGenOperator, SecondarySeedGenOperator, TertiarySeedGenOperator, TreeGenSettingsPanel, TreeGenColorPanel, TreeGenSeedPanel, TreeGenPanel)
+
 def register():
-    bpy.utils.register_class(TestOperator)
-    bpy.utils.register_class(GenExchangeString)
-    bpy.utils.register_class(UseExchangeString)
-    bpy.utils.register_class(GenNewBark)
-    bpy.utils.register_class(GenNewLeaf)
-    bpy.utils.register_class(PrimarySeedGenOperator)
-    bpy.utils.register_class(SecondarySeedGenOperator)
-    bpy.utils.register_class(TertiarySeedGenOperator)
-    bpy.utils.register_class(TreeGenPanel)
+    for cls in classes:
+        bpy.utils.register_class(cls)
     for (prop_name, prop_value) in PROPS:
         setattr(bpy.types.Scene, prop_name, prop_value)
 
 def unregister():
-    bpy.utils.unregister_class(TestOperator)
-    bpy.utils.unregister_class(GenExchangeString)
-    bpy.utils.unregister_class(UseExchangeString)
-    bpy.utils.unregister_class(GenNewBark)
-    bpy.utils.unregister_class(GenNewLeaf)
-    bpy.utils.unregister_class(PrimarySeedGenOperator)
-    bpy.utils.unregister_class(SecondarySeedGenOperator)
-    bpy.utils.unregister_class(TertiarySeedGenOperator)
-    bpy.utils.unregister_class(TreeGenPanel)
+    for cls in classes:
+        bpy.utils.unregister_class(cls)
     for (prop_name, _) in PROPS:
         delattr(bpy.types.Scene, prop_name)
 
