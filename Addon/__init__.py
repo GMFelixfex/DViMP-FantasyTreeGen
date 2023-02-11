@@ -74,7 +74,8 @@ class Generator():
     Tree: bpy.types.Object = None
     Leaves: bpy.types.Object = None
     Form = None
-    
+
+
     def generateForm ():
         bpy.ops.curve.primitive_nurbs_circle_add(radius=1, enter_editmode=True, align='WORLD', location=(0, 0, 0), scale=(1, 1, 1))
         FormSpline = bpy.context.object.data.splines[0]
@@ -340,6 +341,8 @@ class GenExchangeString(bpy.types.Operator):
         return True# context.active_object is not None
 
     def execute(self, context):
+        test: bpy.types.bpy_prop_array =bpy.context.scene.color_picker_6
+        print(test[0])
         exchangeJson = {
             "max_height": bpy.context.scene.max_height,
             "path_length": bpy.context.scene.path_length,
@@ -354,6 +357,13 @@ class GenExchangeString(bpy.types.Operator):
             "bool_detail_bark": bpy.context.scene.bool_detail_bark,
             "bool_detail_leaf": bpy.context.scene.bool_detail_leaf,
             "texture_quality": bpy.context.scene.texture_quality,
+            "color_picker_1": [bpy.context.scene.color_picker_1[0],bpy.context.scene.color_picker_1[1],bpy.context.scene.color_picker_1[2],bpy.context.scene.color_picker_1[3]],
+            "color_picker_2": [bpy.context.scene.color_picker_2[0],bpy.context.scene.color_picker_2[1],bpy.context.scene.color_picker_2[2],bpy.context.scene.color_picker_2[3]],
+            "color_picker_3": [bpy.context.scene.color_picker_3[0],bpy.context.scene.color_picker_3[1],bpy.context.scene.color_picker_3[2],bpy.context.scene.color_picker_3[3]],
+            "color_picker_4": [bpy.context.scene.color_picker_4[0],bpy.context.scene.color_picker_4[1],bpy.context.scene.color_picker_4[2],bpy.context.scene.color_picker_4[3]],
+            "color_picker_5": [bpy.context.scene.color_picker_5[0],bpy.context.scene.color_picker_5[1],bpy.context.scene.color_picker_5[2],bpy.context.scene.color_picker_5[3]],
+            "color_picker_6": [bpy.context.scene.color_picker_6[0],bpy.context.scene.color_picker_6[1],bpy.context.scene.color_picker_6[2],bpy.context.scene.color_picker_6[3]],
+
         }
         jsonstring = json.dumps(exchangeJson)
         b64_exchange_string = base64.b64encode(jsonstring.encode('utf-8'))
@@ -388,7 +398,13 @@ class UseExchangeString(bpy.types.Operator):
         bpy.context.scene.bool_detail_bark = exchangeJson["bool_detail_bark"]
         bpy.context.scene.bool_detail_leaf = exchangeJson["bool_detail_leaf"]
         bpy.context.scene.texture_quality = exchangeJson["texture_quality"]
-        
+        color_picker =  [bpy.context.scene.color_picker_1,bpy.context.scene.color_picker_2,bpy.context.scene.color_picker_3,bpy.context.scene.color_picker_4,bpy.context.scene.color_picker_5,bpy.context.scene.color_picker_6]
+        for i in range(len(color_picker)):
+            color_picker[i][0] =  exchangeJson["color_picker_"+str(i+1)][0]
+            color_picker[i][1] =  exchangeJson["color_picker_"+str(i+1)][1]
+            color_picker[i][2] =  exchangeJson["color_picker_"+str(i+1)][2]
+            color_picker[i][3] =  exchangeJson["color_picker_"+str(i+1)][3]
+
         return {'FINISHED'}
 
 class GenNewBark(bpy.types.Operator):
